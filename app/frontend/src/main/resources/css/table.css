@@ -1,0 +1,76 @@
+/* ─────────────────────────────────────────────────────────────
+   table.css
+   The entries table: scrollable container with sticky ink
+   header, pink date-group bands, and cyan row hover.
+   ───────────────────────────────────────────────────────────── */
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+/* Scroll container — vertical scroll with a hard ink frame. */
+.entries-scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow) !important;
+    background: #fff;
+}
+.entries-scroll table { margin-bottom: 0; }
+
+/* Sticky ink header — matches the navbar/card-title slabs. */
+.entries-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--nb-ink) !important;
+    color: #fff !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.85rem;
+    border-bottom: var(--nb-border) !important;
+}
+
+.entries-scroll tbody tr { transition: background-color 90ms ease; }
+.entries-scroll tbody tr:hover { background-color: var(--nb-cyan) !important; }
+
+/* Per-day band: sticks just below the header while scrolling. */
+.entries-scroll tbody tr.table-secondary {
+    background: var(--nb-pink) !important;
+    color: var(--nb-ink);
+    position: sticky;
+    top: 2.4rem;
+    z-index: 1;
+}
+.entries-scroll tbody tr.table-secondary td {
+    border-top: var(--nb-border);
+    border-bottom: var(--nb-border);
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.entries-scroll td,
+.entries-scroll th {
+    padding: 0.6rem 0.9rem;
+    vertical-align: middle;
+    border-bottom: 2px solid var(--nb-ink);
+}
+.entries-scroll tbody tr:last-child td { border-bottom: 0; }
+
+.amount-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+    font-weight: 700;
+}
+.text-danger {
+    color: #c10b0b !important;
+    font-weight: 800;
+}

@@ -1,0 +1,87 @@
+# ---------- Stage 1: build the Scala app (JVM fat jar + Scala.js bundle) ----------
+FROM eclipse-temurin:25-jdk-alpine AS scala-build
+
+# sbtx is a bash script that fetches sbt via coursier; both need to be present.
+RUN apk add --no-cache bash curl
+
+WORKDIR /src/app
+
+# --- Layer 1: dependency resolution only ---
+# Copy just the files sbt needs to compute its module graph. Any change here
+# (build.sbt, plugins, sbt version) invalidates the deps cache; everything
+# else (Scala sources) does not.
+COPY app/build.sbt ./
+COPY app/sbtx ./
+COPY app/project/build.properties ./project/
+COPY app/project/plugins.sbt ./project/
+
+# Resolve and download every dependency for both projects into the coursier
+# cache that lives inside this layer. `update` is enough — it doesn't compile
+# anything but populates ~/.cache/coursier and ~/.sbt with the full classpath.
+RUN ./sbtx -batch "update"
+
+# --- Layer 2: sources + actual build ---
+# Now bring in the rest of the project. Source edits invalidate this layer and
+# the build below, but the dependency layer above stays cached.
+COPY app /src/app
+
+# Build the frontend (fastLinkJS is good enough for now — fullLinkJS would
+# minify but the MVP doesn't need it) and the backend fat jar.
+RUN ./sbtx -batch "frontend/fastLinkJS;backend/assembly"
+
+# ---------- Stage 1b: vendor frontend JS deps with pnpm (chart.js) ----------
+FROM node:22-alpine AS frontend-vendor
+
+RUN corepack enable
+WORKDIR /src/frontend
+COPY app/frontend/package.json ./
+# pnpm-lock.yaml is optional; copy it if present so the build is reproducible.
+COPY app/frontend/pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile || pnpm install
+# `postinstall` already runs the vendor script, but re-run to be explicit.
+RUN pnpm run vendor
+
+# ---------- Stage 2: build the Go CLI (my-hledger orchestrator) ----------
+FROM golang:1.26-alpine AS cli-build
+
+WORKDIR /src/cli
+COPY cli/go.mod cli/go.sum ./
+RUN go mod download
+COPY cli/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/my-hledger .
+
+# ---------- Stage 3: runtime: Temurin JRE 25 (alpine) + hledger + CLI ----------
+FROM eclipse-temurin:25-jre-alpine
+
+RUN apk update && apk upgrade && \
+    apk add --no-cache bash hledger hledger-web
+
+WORKDIR /opt
+RUN mkdir -p /opt/hledger_data /opt/app/assets
+
+# Frontend assets: index.html, stylesheet, vendored JS (chart.js), Scala.js bundle.
+COPY app/frontend/src/main/resources/index.html /opt/app/assets/index.html
+COPY app/frontend/src/main/resources/app.css /opt/app/assets/app.css
+COPY --from=frontend-vendor /src/frontend/src/main/resources/vendor /opt/app/assets/vendor
+COPY --from=scala-build /src/app/frontend/src/main/resources/js /opt/app/assets/js
+
+# Backend fat jar.
+COPY --from=scala-build /src/app/backend/target/scala-3.8.3/app.jar /opt/app/app.jar
+
+# Go CLI orchestrator binary.
+COPY --from=cli-build /out/my-hledger /usr/local/bin/my-hledger
+
+# Entrypoint script — backgrounds hledger-web on :5000, execs the JVM on :8080.
+COPY app/docker-entrypoint.sh /opt/app/docker-entrypoint.sh
+RUN chmod +x /opt/app/docker-entrypoint.sh
+
+# HLEDGER_JOURNAL is intentionally NOT set — it must be supplied at `docker run`
+# time (e.g. `-e HLEDGER_JOURNAL=/opt/hledger_data/2026.hledger.journal`) so the
+# image stays journal-agnostic.
+ENV HLEDGER_WEB_URL=http://localhost:5000 \
+    APP_ASSETS_DIR=/opt/app/assets
+
+# Only 8080 is published; 5000 (hledger-web) is internal.
+EXPOSE 8080
+
+ENTRYPOINT ["/opt/app/docker-entrypoint.sh"]

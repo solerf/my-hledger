@@ -1,0 +1,14 @@
+/* ─────────────────────────────────────────────────────────────
+   app.css — neubrutalism layer over Bootstrap.
+   Inspired by https://neubrutalism.com/
+
+   This file is intentionally a barrel: each partial owns one
+   concern, and the load order below matters (tokens first so
+   the variables exist by the time the component files run).
+   ───────────────────────────────────────────────────────────── */
+
+@import url("css/tokens.css");   /* design tokens, reset, body, type */
+@import url("css/layout.css");   /* navbar + month-selector strip    */
+@import url("css/forms.css");    /* inputs, selects, buttons         */
+@import url("css/charts.css");   /* chart cards + canvas wrappers    */
+@import url("css/table.css");    /* entries table                    */

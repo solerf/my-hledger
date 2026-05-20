@@ -1,0 +1,51 @@
+/* ─────────────────────────────────────────────────────────────
+   tokens.css
+   Design tokens (CSS custom properties), base reset, and global
+   typography for the neubrutalism layer. Loaded first so every
+   other stylesheet can rely on the variables defined here.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+    /* Palette ── ink + paper neutrals with saturated accents */
+    --nb-ink:        #111111;
+    --nb-paper:      #fdf6e3;
+    --nb-bg:         #ffffff;
+    --nb-yellow:     #ffe23d;
+    --nb-pink:       #ff7ad9;
+    --nb-lime:       #b6ff5c;
+    --nb-cyan:       #6be4ff;
+    --nb-coral:      #ff7a59;
+    --nb-violet:     #c9a7ff;
+    --nb-muted:      #ececec;
+
+    /* Borders, hard offset shadows, radii */
+    --nb-border:     3px solid var(--nb-ink);
+    --nb-border-w:   3px;
+    --nb-shadow:     6px 6px 0 0 var(--nb-ink);
+    --nb-shadow-sm:  4px 4px 0 0 var(--nb-ink);
+    --nb-shadow-lg:  10px 10px 0 0 var(--nb-ink);
+    --nb-radius:     6px;
+}
+
+/* Wipe Bootstrap's soft blurred shadows everywhere; specific
+   components opt back in with the hard offset variants above. */
+* { box-shadow: none !important; }
+
+body {
+    font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--nb-bg);
+    color: var(--nb-ink);
+    margin: 1.25rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+
+/* Bootstrap utility overrides — keep shadow/radius consistent. */
+.shadow-sm, .shadow, .shadow-lg { box-shadow: var(--nb-shadow-sm) !important; }
+.rounded, .rounded-1, .rounded-2, .rounded-3 { border-radius: var(--nb-radius) !important; }

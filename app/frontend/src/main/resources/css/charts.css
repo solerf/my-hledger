@@ -1,0 +1,54 @@
+/* ─────────────────────────────────────────────────────────────
+   charts.css
+   Chart cards and the wrappers around each <canvas>.
+   The canvas itself is painted by Chart.js — colour/font/grid
+   theming for the canvas lives in ChartTheme.scala (Chart.js
+   only honours those via JS globals, not CSS).
+   ───────────────────────────────────────────────────────────── */
+
+/* Outer card around each chart — muted gray slab with a hard
+   shadow that grows on hover. */
+.card {
+    background: var(--nb-muted);
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow) !important;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--nb-shadow-lg) !important;
+}
+
+/* Chart title is a sticker-style ink slab to match the navbar. */
+.card-title {
+    display: inline-block;
+    background: var(--nb-ink);
+    color: #fff;
+    border: var(--nb-border);
+    box-shadow: var(--nb-shadow-sm) !important;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--nb-radius);
+    margin-bottom: 1rem !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Canvas wrappers — fixed height so all charts line up; thick
+   ink border so the chart reads as a discrete brutalist block. */
+.chart-wrap {
+    width: 100%;
+    height: 360px;
+    margin-bottom: 0.5rem;
+    position: relative;
+    background: #fff;
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    padding: 0.5rem;
+}
+.pie-wrap {
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+}

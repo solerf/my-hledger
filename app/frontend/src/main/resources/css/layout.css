@@ -1,0 +1,31 @@
+/* ─────────────────────────────────────────────────────────────
+   layout.css
+   Top-level page chrome: navbar and the month-selector strip
+   that sits below it. Anything that frames the overall page.
+   ───────────────────────────────────────────────────────────── */
+
+/* Navbar — solid ink slab with hard offset shadow. */
+.navbar {
+    background: var(--nb-ink) !important;
+    color: #fff !important;
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow) !important;
+    padding: 0.75rem 1rem;
+}
+.navbar .navbar-brand,
+.navbar .navbar-text {
+    color: #fff !important;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.navbar .navbar-text { font-weight: 600; opacity: 0.85; }
+
+/* Month picker: label sits inline next to the select. */
+.month-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.month-selector .form-label { margin-bottom: 0; }

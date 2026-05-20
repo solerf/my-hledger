@@ -1,0 +1,9 @@
+# Minimal hledger CLI image
+# The journal directory is bind-mounted at runtime
+FROM alpine:3.20
+
+RUN apk add --no-cache hledger hledger-web bash
+
+WORKDIR /opt/hledger_data
+
+ENTRYPOINT ["hledger"]

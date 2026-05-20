@@ -1,0 +1,45 @@
+/* ─────────────────────────────────────────────────────────────
+   forms.css
+   Form controls and buttons. Inputs gain a thick ink border and
+   small offset shadow; buttons get the classic neubrutal press
+   effect (translate on hover, shadow collapses on active).
+   ───────────────────────────────────────────────────────────── */
+
+.form-label {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 1rem;
+}
+
+.form-select,
+.form-control {
+    background: #fff;
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow-sm) !important;
+    font-weight: 600;
+    color: var(--nb-ink);
+}
+.form-select:focus,
+.form-control:focus {
+    outline: none !important;
+    border-color: var(--nb-ink) !important;
+    box-shadow: var(--nb-shadow) !important;
+}
+
+.btn {
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    box-shadow: var(--nb-shadow-sm) !important;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.btn:hover  { transform: translate(-2px, -2px); box-shadow: var(--nb-shadow) !important; }
+.btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 0 var(--nb-ink) !important; }
+.btn-primary   { background: var(--nb-pink)   !important; color: var(--nb-ink) !important; }
+.btn-secondary { background: var(--nb-violet) !important; color: var(--nb-ink) !important; }
+.btn-success   { background: var(--nb-lime)   !important; color: var(--nb-ink) !important; }
+.btn-danger    { background: var(--nb-coral)  !important; color: var(--nb-ink) !important; }
