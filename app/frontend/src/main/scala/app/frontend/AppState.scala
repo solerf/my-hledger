@@ -6,20 +6,17 @@ import com.raquo.laminar.api.L.*
 final case class AppState(api: ExpensesApi):
 
   private val rowsVar: Var[List[MonthlyExpense]] = Var(Nil)
+  private val monthsVar: Var[List[String]]       = Var(Nil) // YYYY-MM
 
-  // All months observed in the journal — populated once at startup and used
-  // to seed the month-selector combobox.
-  private val monthsVar: Var[List[String]] = Var(Nil)
-
-  // Currently selected month (YYYY-MM). Empty string = no selection yet
-  // (initial state before months have loaded).
-  private val selectedMonthVar: Var[String] = Var("")
+  private val selectedMonthVar: Var[String] = Var("") // YYYY-MM
 
   val rowsSignal: Signal[List[MonthlyExpense]] = rowsVar.signal
   val monthsSignal: Signal[List[String]]       = monthsVar.signal
   val selectedMonthSignal: Signal[String]      = selectedMonthVar.signal
 
   val selectedMonthWriter: Var[String] = selectedMonthVar
+
+  def isRowsEmpty: Boolean = rowsVar.now().isEmpty
 
   def updateExpensesRows(rows: List[MonthlyExpense]): Unit = {
     if (monthsVar.now().isEmpty) setMonths(rows.map(_.yearMonth).distinct.sorted)

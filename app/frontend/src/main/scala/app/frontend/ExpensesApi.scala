@@ -27,7 +27,9 @@ case class ExpensesApi()(using ec: ExecutionContext):
   def fetchExpensesBy(month: String): Future[ErrorOr[List[MonthlyExpense]]] =
     expenses(s"/api/expenses/monthly?month=$month")
 
-  private def expenses(url: String)(using ec: ExecutionContext) =
+  private def expenses(url: String)(using
+    ec: ExecutionContext
+  ): Future[ErrorOr[List[MonthlyExpense]]] =
     for {
       response <- dom.fetch(url)
       body     <- response.text()

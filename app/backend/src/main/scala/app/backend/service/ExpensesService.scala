@@ -23,7 +23,7 @@ object ExpensesService:
 
     override def monthly(month: Option[String]): F[List[MonthlyExpense]] =
       for {
-        _                   <- Logger[F].debug(s"monthly: month=${month.getOrElse("-")}")
+        _                   <- Logger[F].info(s"monthly: month=${month.getOrElse("-")}")
         journalTransactions <- hledgerAPI.transactions()
         expenses =
           journalTransactions
@@ -60,6 +60,6 @@ object ExpensesService:
       } yield expenses
 
     override def accounts(): F[List[String]] =
-      Logger[F].debug("accounts: listing accountnames") *>
+      Logger[F].info("accounts: listing accountnames") *>
         hledgerAPI.accountNames().map(_.distinct.sorted)
   }

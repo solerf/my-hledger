@@ -1,6 +1,7 @@
 package app.frontend
 
 import app.frontend.charts.ChartTheme
+import app.shared.dtos.MonthlyExpense
 import cats.syntax.all.catsSyntaxEither
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
@@ -11,38 +12,44 @@ object Main:
 
   def main(args: Array[String]): Unit = {
     ChartTheme.install()
-    val api       = new ExpensesApi
-    val state     = AppState(api)
-    val container = dom.document.getElementById("app")
-    val _         = render(container, Views.app(state))
+    val api   = new ExpensesApi
+    val state = AppState(api)
 
-    init(state, api)
-    registerMonthChange(state, api)
-  }
+    def updateView(exp: List[MonthlyExpense]): Unit = {
+      state.updateExpensesRows(exp)
+      val view      = Views.app(state)
+      val container = dom.document.getElementById("app")
+      val _         = render(container, view)
+    }
 
-  private def init(state: AppState, api: ExpensesApi): Unit =
-    api.fetchExpenses()
+    // init view
+    api
+      .fetchExpenses()
       .foreach(
         _.bimap(
           err => dom.console.error(s"failed: $err"),
-          state.updateExpensesRows
+          updateView
         )
       )
 
-  private def registerMonthChange(state: AppState, api: ExpensesApi): Unit =
+    registerMonthChange(state, api, updateView)
+  }
+
+  private def registerMonthChange(
+    state: AppState,
+    api: ExpensesApi,
+    callback: List[MonthlyExpense] => Unit
+  ): Unit =
     state
       .selectedMonthSignal
       .changes
       .foreach {
-        // Refetch whenever the user changes the selected month. The initial
-        // population done previously already sets rows for the latest month, so
-        // we drop the leading default emission via `changes`.
         m =>
           api.fetchExpensesBy(m)
             .foreach(
               _.bimap(
                 err => dom.console.error(s"failed: $err"),
-                state.updateExpensesRows
+                callback
               )
             )
       }(using unsafeWindowOwner): Unit

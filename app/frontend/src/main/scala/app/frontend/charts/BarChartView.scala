@@ -40,7 +40,7 @@ object BarChartView:
       datasets = js.Array(
         js.Dynamic.literal(
           label = "Amount",
-          data = js.Array(values*),
+          data = js.Array(values.map(_.toDouble)*),
           backgroundColor = js.Array(colors*)
         )
       )
