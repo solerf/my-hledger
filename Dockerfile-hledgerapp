@@ -62,6 +62,7 @@ RUN mkdir -p /opt/hledger_data /opt/app/assets
 # Frontend assets: index.html, stylesheet, vendored JS (chart.js), Scala.js bundle.
 COPY app/frontend/src/main/resources/index.html /opt/app/assets/index.html
 COPY app/frontend/src/main/resources/app.css /opt/app/assets/app.css
+COPY app/frontend/src/main/resources/css /opt/app/assets/css
 COPY --from=frontend-vendor /src/frontend/src/main/resources/vendor /opt/app/assets/vendor
 COPY --from=scala-build /src/app/frontend/src/main/resources/js /opt/app/assets/js
 
@@ -79,7 +80,8 @@ RUN chmod +x /opt/app/docker-entrypoint.sh
 # time (e.g. `-e HLEDGER_JOURNAL=/opt/hledger_data/2026.hledger.journal`) so the
 # image stays journal-agnostic.
 ENV HLEDGER_WEB_URL=http://localhost:5000 \
-    APP_ASSETS_DIR=/opt/app/assets
+    APP_ASSETS_DIR=/opt/app/assets \
+    HOME=/tmp
 
 # Only 8080 is published; 5000 (hledger-web) is internal.
 EXPOSE 8081

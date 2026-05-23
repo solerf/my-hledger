@@ -111,8 +111,17 @@ object Views:
         case (parentAcc, subAccRows) =>
           val isExpense = parentAcc == "expenses"
           val accSum    = subAccRows.map(_.amount).sum
+
+          val headerDesc = subAccRows.headOption
+            .map(r => Seq(r.description, r.comment).filter(_.nonEmpty).mkString(" | "))
+            .collect { case s if s.nonEmpty => s"($s)" }
+            .getOrElse("")
+
           val accHeader = tr(
-            td(parentAcc, cls := "text-end fst-italic"),
+            td(
+              s"$parentAcc $headerDesc",
+              cls := "text-end fst-italic"
+            ),
             td(),
             td(
               cls                := "amount-num",
@@ -122,9 +131,14 @@ object Views:
           )
           val entries = subAccRows.map {
             r =>
+              val desc =
+                Option(r.description).collect { case s if s.nonEmpty => s"($s)" }.getOrElse("")
               tr(
                 td(),
-                td(r.account.split(":").tail.mkString(":"), cls := "fst-italic"),
+                td(
+                  s"${r.account.split(":").tail.mkString(":")} $desc",
+                  cls := "fst-italic"
+                ),
                 td(
                   cls                := "amount-num",
                   cls("text-danger") := isExpense,

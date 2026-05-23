@@ -1,4 +1,4 @@
-module github.com/felipesoler/my-hledger/cli
+module github.com/solerf/my-hledger/cli
 
 go 1.26.3
 

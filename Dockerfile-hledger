@@ -6,4 +6,8 @@ RUN apk add --no-cache hledger hledger-web bash
 
 WORKDIR /opt/hledger_data
 
+# HOME points at a world-writable dir so hledger can create ~/.cache when run
+# with `--user <uid>:<gid>` for a uid without a /etc/passwd entry.
+ENV HOME=/tmp
+
 ENTRYPOINT ["hledger"]

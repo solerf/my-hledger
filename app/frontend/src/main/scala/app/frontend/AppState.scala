@@ -6,6 +6,9 @@ import com.raquo.laminar.api.L.*
 final case class Row(
   yearMonth: String,
   account: String,
+  comment: String,
+  description: String,
+  txComment: String,
   date: String,
   amount: BigDecimal
 )
@@ -65,6 +68,7 @@ final case class AppState(api: ExpensesApi) {
 
     private def partitionMonthlyEntries(monthlyEntries: List[MonthlyExpense]): RowsPartition = {
       val union = monthlyEntries.map { me =>
+        val (comment, desc) = (me.comment, me.description)
         // 1st fold inner
         me.entries.foldLeft((List.empty[Row], List.empty[Row], List.empty[Row])) {
           case ((exp, rev, rawRev), next) if next.account.startsWith("expense") =>
@@ -72,6 +76,9 @@ final case class AppState(api: ExpensesApi) {
               Row(
                 yearMonth = me.yearMonth,
                 account = next.account,
+                comment = comment,
+                description = desc,
+                txComment = next.comment,
                 date = next.date,
                 amount = next.amount
               ) :: exp,
@@ -84,6 +91,9 @@ final case class AppState(api: ExpensesApi) {
             val row = Row(
               yearMonth = me.yearMonth,
               account = next.account,
+              comment = comment,
+              description = desc,
+              txComment = next.comment,
               date = next.date,
               amount = next.amount
             )

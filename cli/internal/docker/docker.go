@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -45,6 +44,7 @@ func (p PortMap) spec() string {
 type RunOpts struct {
 	Image       string
 	Name        string
+	User        string // --user (e.g. "1000:1000"); empty = container default.
 	Detach      bool
 	Remove      bool // --rm
 	Interactive bool // -i
@@ -53,6 +53,11 @@ type RunOpts struct {
 	Volumes     []VolumeMount
 	Ports       []PortMap
 	Args        []string // appended after the image name and passed as the container command.
+}
+
+// CurrentUser returns the host's uid:gid as a string suitable for --user.
+func CurrentUser() string {
+	return fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
 }
 
 func (c *Client) Run(ctx context.Context, opts RunOpts) error {
@@ -75,6 +80,9 @@ func (c *Client) Run(ctx context.Context, opts RunOpts) error {
 	if opts.Name != "" {
 		args = append(args, "--name", opts.Name)
 	}
+	if opts.User != "" {
+		args = append(args, "--user", opts.User)
+	}
 	// Sort env keys so the command line is deterministic
 	for _, k := range sortedKeys(opts.Env) {
 		args = append(args, "-e", k+"="+opts.Env[k])
@@ -90,41 +98,18 @@ func (c *Client) Run(ctx context.Context, opts RunOpts) error {
 	return c.runCmd(ctx, args)
 }
 
-type BuildOpts struct {
-	Tag        string
-	Dockerfile string            // path
-	Context    string            // build context
-	BuildArgs  map[string]string // --build-arg KEY=VALUE
-	NoCache    bool
-}
-
-func (c *Client) Build(ctx context.Context, opts BuildOpts) error {
-	if opts.Context == "" {
-		return fmt.Errorf("docker build: context is required")
+func (c *Client) ImageExists(ctx context.Context, image string) (bool, error) {
+	cmd := exec.CommandContext(ctx, c.Bin, "image", "inspect", image)
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	err := cmd.Run()
+	if err == nil {
+		return true, nil
 	}
-	args := []string{"build"}
-
-	if opts.Tag == "" {
-		opts.Tag = "hledger-app"
+	if _, ok := err.(*exec.ExitError); ok {
+		return false, nil
 	}
-	args = append(args, "-t", opts.Tag)
-
-	if opts.Dockerfile == "" {
-		return errors.New("docker build: dockerfile is required")
-	}
-	args = append(args, "-f", opts.Dockerfile)
-
-	if opts.NoCache {
-		args = append(args, "--no-cache")
-	}
-
-	// sort, so it is reproducible
-	for _, k := range sortedKeys(opts.BuildArgs) {
-		args = append(args, "--build-arg", k+"="+opts.BuildArgs[k])
-	}
-
-	args = append(args, opts.Context)
-	return c.runCmd(ctx, args)
+	return false, err
 }
 
 func sortedKeys(kenv map[string]string) []string {
