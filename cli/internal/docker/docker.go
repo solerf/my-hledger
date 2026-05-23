@@ -22,12 +22,10 @@ func New() *Client {
 type VolumeMount struct {
 	Host      string
 	Container string
-	ReadOnly  bool
 }
 
 func (v VolumeMount) spec() string {
-	s := v.Host + ":" + v.Container
-	return s
+	return v.Host + ":" + v.Container
 }
 
 type PortMap struct {

@@ -27,7 +27,7 @@ object Main extends IOApp:
 
       logger = LoggerFactory[IO].getLogger
       _ <- logger.info(
-        s"starting app: bind=0.0.0.0:8080 assets=${assetsDir.getAbsolutePath} hledger-web=$hledgerWebUrl"
+        s"starting app: bind=0.0.0.0:8081 assets=${assetsDir.getAbsolutePath} hledger-web=$hledgerWebUrl"
       )
 
       _ <-
@@ -38,7 +38,7 @@ object Main extends IOApp:
             val svc   = ExpensesService(hlAPI)
 
             buildServer(Routes.buildHttpApp(svc, assetsDir))
-              .use(_ => logger.info("server ready on http://0.0.0.0:8080") *> IO.never)
+              .use(_ => logger.info("server ready on http://0.0.0.0:8081") *> IO.never)
           }
 
     } yield ExitCode.Success
@@ -47,7 +47,7 @@ object Main extends IOApp:
     EmberServerBuilder
       .default[IO]
       .withHost(host"0.0.0.0")
-      .withPort(port"8080")
+      .withPort(port"8081")
       .withHttpApp(httpApp)
       .build
 

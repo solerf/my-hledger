@@ -4,10 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	"github.com/felipesoler/my-hledger/cli/internal/docker"
 )
+
+const containerDataDir = "/opt/hledger_data"
 
 type RunWebCmd struct {
 	Journal  string `name:"journal" short:"j" required:"true" help:"Journal path inside the container."`
@@ -26,6 +31,14 @@ func (c *RunWebCmd) Run() error {
 		return fmt.Errorf("stat %q: %w", absData, err)
 	}
 
+	hostJournal, err := journalHostPath(c.Journal, absData)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(hostJournal); err != nil {
+		return fmt.Errorf("journal %q (host: %q): %w", c.Journal, hostJournal, err)
+	}
+
 	cli := docker.New()
 	opts := docker.RunOpts{
 		Image:       c.Image,
@@ -37,13 +50,25 @@ func (c *RunWebCmd) Run() error {
 			"HLEDGER_JOURNAL": c.Journal,
 		},
 		Volumes: []docker.VolumeMount{
-			{Host: absData, Container: "/opt/hledger_data"},
+			{Host: absData, Container: containerDataDir},
 		},
 		Ports: []docker.PortMap{
-			{Host: c.Port, Container: 8080},
+			{Host: c.Port, Container: 8081},
 		},
 	}
-	return cli.Run(context.Background(), opts)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return cli.Run(ctx, opts)
+}
+
+func journalHostPath(containerPath, hostDataDir string) (string, error) {
+	prefix := containerDataDir + "/"
+	if !strings.HasPrefix(containerPath, prefix) {
+		return "", fmt.Errorf("journal %q must live under %s", containerPath, containerDataDir)
+	}
+	rel := strings.TrimPrefix(containerPath, prefix)
+	return filepath.Join(hostDataDir, filepath.FromSlash(rel)), nil
 }
 
 type ImportCmd struct {

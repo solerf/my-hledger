@@ -82,6 +82,6 @@ ENV HLEDGER_WEB_URL=http://localhost:5000 \
     APP_ASSETS_DIR=/opt/app/assets
 
 # Only 8080 is published; 5000 (hledger-web) is internal.
-EXPOSE 8080
+EXPOSE 8081
 
 ENTRYPOINT ["/opt/app/docker-entrypoint.sh"]
