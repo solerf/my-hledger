@@ -123,7 +123,6 @@ func sortedKeys(kenv map[string]string) []string {
 
 func (c *Client) runCmd(ctx context.Context, args []string) error {
 	cmd := exec.CommandContext(ctx, c.Bin, args...)
-	// streaming stdio
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

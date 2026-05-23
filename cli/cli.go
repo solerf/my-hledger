@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 
@@ -266,7 +267,78 @@ func truncateCSVKeepHeader(path string) error {
 	return os.WriteFile(path, []byte(header+"\n"), 0o644)
 }
 
+type LastEntryCmd struct {
+	Account string `arg:"" help:"Full account name (exact match, e.g. assets:n26:main)."`
+	Journal string `name:"journal" short:"j" required:"" help:"Host path to the journal file."`
+}
+
+var (
+	journalDateRe   = regexp.MustCompile(`^(\d{4}[-./]\d{2}[-./]\d{2})`)
+	accountSplitter = regexp.MustCompile(`\s{2,}|\t`)
+)
+
+func (c *LastEntryCmd) Run() error {
+	absJournal, err := filepath.Abs(c.Journal)
+	if err != nil {
+		return fmt.Errorf("resolving journal path: %w", err)
+	}
+	f, err := os.Open(absJournal)
+	if err != nil {
+		return fmt.Errorf("open journal %q: %w", absJournal, err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	var lines []string
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("read journal: %w", err)
+	}
+
+	date := findLastEntryDate(lines, c.Account)
+	if date == "" {
+		fmt.Fprintf(os.Stderr, "no entries found for account %q\n", c.Account)
+		return nil
+	}
+	fmt.Println(date)
+	return nil
+}
+
+func findLastEntryDate(lines []string, account string) string {
+	matched := false
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := lines[i]
+		if m := journalDateRe.FindStringSubmatch(line); m != nil {
+			if matched {
+				return strings.ReplaceAll(strings.ReplaceAll(m[1], "/", "-"), ".", "-")
+			}
+			matched = false
+			continue
+		}
+		if line == "" || (line[0] != ' ' && line[0] != '\t') {
+			continue
+		}
+		body := line
+		if idx := strings.Index(body, ";"); idx >= 0 {
+			body = body[:idx]
+		}
+		body = strings.TrimSpace(body)
+		if body == "" {
+			continue
+		}
+		acct := accountSplitter.Split(body, 2)[0]
+		if acct == account {
+			matched = true
+		}
+	}
+	return ""
+}
+
 var cli struct {
-	RunWeb RunWebCmd `cmd:"" name:"run-web" help:"Start the hledger-app in docker."`
-	Import ImportCmd `cmd:"" help:"Import a CSV into the journal."`
+	RunWeb    RunWebCmd    `cmd:"" name:"run-web" help:"Start the hledger-app in docker."`
+	Import    ImportCmd    `cmd:"" help:"Import a CSV into the journal."`
+	LastEntry LastEntryCmd `cmd:"" name:"last-entry" help:"Print the most recent date in the journal for a given account."`
 }

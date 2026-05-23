@@ -15,6 +15,9 @@ Commands:
   import --journal=STRING <csv> [flags]
     Import a CSV into the journal.
 
+  last-entry --journal=STRING <account>
+    Print the most recent date in the journal for a given account.
+
 Run "my-hledger-cli <command> --help" for more information on a command.
 ```
 
@@ -59,4 +62,20 @@ Flags:
                            import.
       --dry-run            Print the docker command and skip mutations (no
                            backup, no import, no truncate).
+```
+
+## last-entry
+
+```
+Usage: my-hledger-cli last-entry --journal=STRING <account>
+
+Print the most recent date in the journal for a given account.
+
+Arguments:
+  <account>    Full account name (exact match, e.g. assets:n26:main).
+
+Flags:
+  -h, --help              Show context-sensitive help.
+
+  -j, --journal=STRING    Host path to the journal file.
 ```
