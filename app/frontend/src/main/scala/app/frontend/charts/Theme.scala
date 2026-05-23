@@ -17,7 +17,7 @@ import scala.scalajs.js
   * are intentionally not touched here (would require iterating each
   * scale type and is brittle across Chart.js versions).
   */
-object ChartTheme:
+object Theme:
 
   private val Ink     = "#111111"
   private val FontFam = "\"Space Grotesk\", \"Inter\", system-ui, sans-serif"

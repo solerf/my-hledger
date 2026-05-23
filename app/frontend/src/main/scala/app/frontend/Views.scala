@@ -1,59 +1,49 @@
 package app.frontend
 
 import app.frontend.charts.{AccountsLineChartView, BarChartView, LineChartView, StackedBarChartView}
-import app.shared.dtos.MonthlyExpense
+import com.raquo.laminar.api.L
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import org.scalajs.dom.HTMLTableRowElement
+import org.scalajs.dom.{HTMLDivElement, HTMLTableRowElement}
 
 object Views:
 
-  final case class Row(yearMonth: String, account: String, amount: BigDecimal, date: String)
+  def render(
+    state: AppState,
+    monthChangeObserver: Observer[String]
+  ): ReactiveHtmlElement[HTMLDivElement] =
+    div(
+      navbar(),
+      child <-- state.signals.mounted.distinct.map { loaded =>
+        if (!loaded) div(cls := "row", div(cls := "col-12", noJournal()))
+        else loadedView(state, monthChangeObserver)
+      }
+    )
 
-  private def flattenRowsByPrefix(
-    monthly: List[MonthlyExpense],
-    prefix: String,
-    negate: Boolean = false
-  ): List[Row] =
-    monthly.flatMap { m =>
-      m.entries
-        .collect {
-          case e if e.account.startsWith(prefix) =>
-            val amt = if negate then -e.amount else e.amount
-            Row(m.yearMonth, e.account, amt, e.date)
-        }
-    }
-
-  private def dailyTotals(rows: List[Row]): List[(String, BigDecimal)] =
-    rows.groupMapReduce(_.date)(_.amount)(_ + _).toList.sortBy(_._1)
-
-  def app(state: AppState): HtmlElement =
-    if (state.isRowsEmpty) {
+  private def loadedView(
+    state: AppState,
+    monthChangeObserver: Observer[String]
+  ): ReactiveHtmlElement[HTMLDivElement] =
+    div(
+      monthSelector(state, monthChangeObserver),
+      div(cls := "row", div(cls := "col-12", BarChartView.view(state.signals.expenses))),
       div(
-        navbar(),
-        div(cls := "row", div(cls := "col-12", noJournal()))
-      )
-    } else {
-      val rowsSignal = state.rowsSignal.map(flattenRowsByPrefix(_, "expenses"))
-      val spendDaily = rowsSignal.map(dailyTotals)
-      // Income postings are stored as negatives in hledger (credits)
-      // invert them so they plot as positive
-      val incomeRows    = state.rowsSignal.map(flattenRowsByPrefix(_, "revenues", negate = true))
-      val earningsDaily = incomeRows.map(dailyTotals)
-      // Table shows both: expenses as positive, revenues kept negative so the
-      // sign distinguishes them and triggers the red styling.
-      val rawRevenues = state.rowsSignal.map(flattenRowsByPrefix(_, "revenues"))
-      val tableRows   = rowsSignal.combineWith(rawRevenues).map((e, r) => e ++ r)
+        cls := "row",
+        div(cls := "col-12", StackedBarChartView.view(state.signals.expenses))
+      ),
       div(
-        navbar(),
-        monthSelector(state),
-        div(cls := "row", div(cls := "col-12", BarChartView.view(rowsSignal))),
-        div(cls := "row", div(cls := "col-12", StackedBarChartView.view(rowsSignal))),
-        div(cls := "row", div(cls := "col-12", LineChartView.view(spendDaily, earningsDaily))),
-        div(cls := "row", div(cls := "col-12", AccountsLineChartView.view(rowsSignal))),
-        entriesTable(tableRows)
-      )
-    }
+        cls := "row",
+        div(
+          cls := "col-12",
+          LineChartView.view(state.signals.dailySpend, state.signals.dailyIncome)
+        )
+      ),
+      div(
+        cls := "row",
+        div(cls := "col-12", AccountsLineChartView.view(state.signals.expenses))
+      ),
+      entriesTable(state.signals.expensesAndRevenuesByDate)
+    )
 
   private def noJournal() =
     div(
@@ -72,7 +62,7 @@ object Views:
       )
     )
 
-  private def monthSelector(state: AppState): HtmlElement =
+  private def monthSelector(state: AppState, monthChangeObserver: Observer[String]): HtmlElement =
     div(
       cls := "month-selector mb-3",
       label(cls := "form-label", forId := "month-select", "Month"),
@@ -80,16 +70,18 @@ object Views:
         idAttr := "month-select",
         cls    := "form-select",
         controlled(
-          value <-- state.selectedMonthSignal,
+          value <-- state.signals.monthSelected,
           onChange.mapToValue --> state.selectedMonthWriter
         ),
-        children <-- state.monthsSignal.map { months =>
-          months.map(m => option(value := m, m))
-        }
+        children <-- state.signals.months.combineWith(state.signals.monthSelected).map {
+          case (months, sel) =>
+            months.map(m => option(value := m, selected := (m == sel), m))
+        },
+        state.signals.monthSelected.changes --> monthChangeObserver
       )
     )
 
-  private def entriesTable(rowsSignal: Signal[List[Row]]): HtmlElement =
+  private def entriesTable(rowsSignal: Signal[List[(String, List[Row])]]): HtmlElement =
     div(
       cls := "table-responsive entries-scroll",
       table(
@@ -98,9 +90,6 @@ object Views:
         tbody(
           children <-- rowsSignal.map { rows =>
             rows
-              .groupBy(_.date)
-              .toList
-              .sortBy(_._1)
               .flatMap { case (date, group) =>
                 val dateHeader = tr(cls := "table-secondary", td(colSpan := 3, strong(date)))
                 val entries    = buildRows(group)

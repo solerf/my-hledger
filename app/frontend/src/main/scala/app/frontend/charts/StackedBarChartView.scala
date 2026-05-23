@@ -1,18 +1,15 @@
 package app.frontend.charts
 
-import app.frontend.Views.Row
+import app.frontend.Row
 import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js
 
-/** Stacked bar chart: one bar per top-level expense account, with each
-  * nested subaccount drawn as a stacked segment within that bar.
-  */
 object StackedBarChartView:
 
   val canvasId = "chart-stacked-bar"
 
-  private val handle = new ChartHandle(canvasId)
+  private val handle = new Instance(canvasId)
 
   def view(rowsSignal: Signal[List[Row]]): HtmlElement =
     div(
@@ -34,7 +31,7 @@ object StackedBarChartView:
   private def render(rows: List[Row]): Unit = {
     val categories  = rows.map(r => topLevel(r.account)).distinct.sorted
     val subaccounts = rows.map(_.account).distinct.sorted
-    val colors      = pickColors(subaccounts.size).toList
+    val colors      = Colors.pickColors(subaccounts).toList
 
     val totals: Map[(String, String), BigDecimal] =
       rows.groupMapReduce(r => (r.account, topLevel(r.account)))(_.amount)(_ + _)

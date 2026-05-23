@@ -4,16 +4,15 @@ import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js
 
-/** Cumulative line chart with two series: spend and earnings per day. */
 object LineChartView:
 
   val canvasId = "chart-line"
 
-  private val handle = new ChartHandle(canvasId)
+  private val handle = new Instance(canvasId)
 
   def view(
-      spendSignal: Signal[List[(String, BigDecimal)]],
-      earningsSignal: Signal[List[(String, BigDecimal)]]
+    spendSignal: Signal[List[(String, Double)]],
+    earningsSignal: Signal[List[(String, Double)]]
   ): HtmlElement =
     div(
       cls := "card shadow-sm mb-4",
@@ -24,28 +23,29 @@ object LineChartView:
           cls := "chart-wrap",
           canvasTag(idAttr := canvasId, widthAttr := 960, heightAttr := 360)
         ),
-        spendSignal.combineWith(earningsSignal) --> Observer[
-          (List[(String, BigDecimal)], List[(String, BigDecimal)])
-        ] { case (s, e) => render(s, e) }
+        spendSignal.combineWith(earningsSignal) -->
+          Observer[
+            (List[(String, Double)], List[(String, Double)])
+          ] { case (s, e) => render(s, e) }
       )
     )
 
-  private def cumulative(series: List[(String, BigDecimal)]): List[BigDecimal] =
+  private def cumulative(series: List[(String, Double)]): List[Double] =
     series
-      .scanLeft(BigDecimal(0)) { case (acc, (_, v)) => acc + v }
+      .scanLeft(0d) { case (acc, (_, v)) => acc + v }
       .drop(1)
 
   private def render(
-      spend: List[(String, BigDecimal)],
-      earnings: List[(String, BigDecimal)]
+    spend: List[(String, Double)],
+    earnings: List[(String, Double)]
   ): Unit = {
     // Build a unified, sorted date axis covering both series.
     val labels = (spend.map(_._1) ++ earnings.map(_._1)).distinct.sorted
 
-    val spendMap    = spend.toMap
-    val earningsMap = earnings.toMap
-    val spendOnAxis    = labels.map(d => (d, spendMap.getOrElse(d, BigDecimal(0))))
-    val earningsOnAxis = labels.map(d => (d, earningsMap.getOrElse(d, BigDecimal(0))))
+    val spendMap       = spend.toMap
+    val earningsMap    = earnings.toMap
+    val spendOnAxis    = labels.map(d => (d, spendMap.getOrElse(d, 0d)))
+    val earningsOnAxis = labels.map(d => (d, earningsMap.getOrElse(d, 0d)))
 
     val spendCum    = cumulative(spendOnAxis).map(_.toDouble)
     val earningsCum = cumulative(earningsOnAxis).map(_.toDouble)

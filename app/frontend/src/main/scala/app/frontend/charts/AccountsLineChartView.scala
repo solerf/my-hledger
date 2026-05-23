@@ -1,16 +1,15 @@
 package app.frontend.charts
 
-import app.frontend.Views.Row
+import app.frontend.Row
 import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js
 
-/** Line chart: per-account daily totals (one line per account). */
 object AccountsLineChartView:
 
   val canvasId = "chart-accounts-line"
 
-  private val handle = new ChartHandle(canvasId)
+  private val handle = new Instance(canvasId)
 
   def view(rowsSignal: Signal[List[Row]]): HtmlElement =
     div(
@@ -29,7 +28,7 @@ object AccountsLineChartView:
   private def render(rows: List[Row]): Unit = {
     val labels   = rows.map(_.date).distinct.sorted
     val accounts = rows.map(_.account).distinct.sorted
-    val colors   = pickColors(accounts.size).toList
+    val colors   = Colors.pickColors(accounts).toList
 
     val byAcctDate: Map[(String, String), BigDecimal] =
       rows

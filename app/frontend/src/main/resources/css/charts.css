@@ -6,18 +6,12 @@
    only honours those via JS globals, not CSS).
    ───────────────────────────────────────────────────────────── */
 
-/* Outer card around each chart — muted gray slab with a hard
-   shadow that grows on hover. */
+/* Outer card around each chart — muted gray slab. */
 .card {
     background: var(--nb-muted);
     border: var(--nb-border) !important;
     border-radius: var(--nb-radius) !important;
     box-shadow: var(--nb-shadow) !important;
-    transition: transform 120ms ease, box-shadow 120ms ease;
-}
-.card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: var(--nb-shadow-lg) !important;
 }
 
 /* Chart title is a sticker-style ink slab to match the navbar. */

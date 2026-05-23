@@ -1,6 +1,6 @@
 package app.frontend.charts
 
-import app.frontend.Views.Row
+import app.frontend.Row
 import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js
@@ -9,7 +9,7 @@ object BarChartView:
 
   val canvasId = "chart-bar"
 
-  private val handle = new ChartHandle(canvasId)
+  private val handle = new Instance(canvasId)
 
   def view(rowsSignal: Signal[List[Row]]): HtmlElement =
     div(
@@ -33,7 +33,7 @@ object BarChartView:
         .sortBy { case (_, total) => -total }
         .unzip
 
-    val colors = pickColors(labels.size).toList
+    val colors = Colors.pickColors(labels).toList
 
     val data = js.Dynamic.literal(
       labels = js.Array(labels*),
