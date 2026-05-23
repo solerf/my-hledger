@@ -11,7 +11,7 @@ object AccountsLineChartView:
 
   private val handle = new Instance(canvasId)
 
-  def view(rowsSignal: Signal[List[Row]]): HtmlElement =
+  def view(dataRowsSignal: Signal[List[Row]]): HtmlElement =
     div(
       cls := "card shadow-sm mb-4",
       div(
@@ -21,14 +21,16 @@ object AccountsLineChartView:
           cls := "chart-wrap",
           canvasTag(idAttr := canvasId, widthAttr := 960, heightAttr := 360)
         ),
-        rowsSignal --> Observer[List[Row]](render)
+        dataRowsSignal --> Observer[List[Row]](render)
       )
     )
 
   private def render(rows: List[Row]): Unit = {
-    val labels   = rows.map(_.date).distinct.sorted
-    val accounts = rows.map(_.account).distinct.sorted
-    val colors   = Colors.pickColors(accounts).toList
+    val (labels, accounts) = rows.map(r => (r.date, r.account)).unzip match {
+      case (d, a) => (d.distinct.sorted, a.distinct.sorted)
+    }
+
+    val colors = Colors.pickColors(accounts).toList
 
     val byAcctDate: Map[(String, String), BigDecimal] =
       rows

@@ -42,13 +42,18 @@ object LineChartView:
     // Build a unified, sorted date axis covering both series.
     val labels = (spend.map(_._1) ++ earnings.map(_._1)).distinct.sorted
 
-    val spendMap       = spend.toMap
-    val earningsMap    = earnings.toMap
-    val spendOnAxis    = labels.map(d => (d, spendMap.getOrElse(d, 0d)))
-    val earningsOnAxis = labels.map(d => (d, earningsMap.getOrElse(d, 0d)))
+    val spendMap                      = spend.toMap
+    val earningsMap                   = earnings.toMap
+    val (spendOnAxis, earningsOnAxis) =
+      labels.map {
+        d =>
+          val s = (d, spendMap.getOrElse(d, 0d))
+          val e = (d, earningsMap.getOrElse(d, 0d))
+          (s, e)
+      }.unzip
 
-    val spendCum    = cumulative(spendOnAxis).map(_.toDouble)
-    val earningsCum = cumulative(earningsOnAxis).map(_.toDouble)
+    val spendAcc    = cumulative(spendOnAxis)
+    val earningsAcc = cumulative(earningsOnAxis)
 
     val spendColor    = "#c10b0b"
     val earningsColor = "#1f7a1f"
@@ -58,7 +63,7 @@ object LineChartView:
       datasets = js.Array(
         js.Dynamic.literal(
           label = "Spend",
-          data = js.Array(spendCum*),
+          data = js.Array(spendAcc*),
           borderColor = spendColor,
           backgroundColor = spendColor,
           tension = 0.25,
@@ -66,7 +71,7 @@ object LineChartView:
         ),
         js.Dynamic.literal(
           label = "Earnings",
-          data = js.Array(earningsCum*),
+          data = js.Array(earningsAcc*),
           borderColor = earningsColor,
           backgroundColor = earningsColor,
           tension = 0.25,

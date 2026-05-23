@@ -11,7 +11,7 @@ object StackedBarChartView:
 
   private val handle = new Instance(canvasId)
 
-  def view(rowsSignal: Signal[List[Row]]): HtmlElement =
+  def view(dataRowSignal: Signal[List[Row]]): HtmlElement =
     div(
       cls := "card shadow-sm mb-4",
       div(
@@ -21,29 +21,38 @@ object StackedBarChartView:
           cls := "chart-wrap",
           canvasTag(idAttr := canvasId, widthAttr := 960, heightAttr := 360)
         ),
-        rowsSignal --> Observer[List[Row]](render)
+        dataRowSignal --> Observer[List[Row]](render)
       )
     )
 
-  private def topLevel(account: String): String =
-    account.split(':').take(2).mkString(":")
-
   private def render(rows: List[Row]): Unit = {
-    val categories  = rows.map(r => topLevel(r.account)).distinct.sorted
-    val subaccounts = rows.map(_.account).distinct.sorted
-    val colors      = Colors.pickColors(subaccounts).toList
+    val (totals, categories, subaccounts) =
+      rows.foldLeft((Map.empty[(String, String), Double], List.empty[String], List.empty[String])) {
+        case ((totals, cat, sub), next) =>
+          val splitAcc   = next.account.split(":")
+          val topAccount =
+            if (splitAcc.length > 2) splitAcc.take(2).mkString(":") else splitAcc.head
+          val totalKey = (topAccount, next.account)
 
-    val totals: Map[(String, String), BigDecimal] =
-      rows.groupMapReduce(r => (r.account, topLevel(r.account)))(_.amount)(_ + _)
+          val totalAcc = totals.updatedWith(totalKey) {
+            current => current.map(_ + next.amount.toDouble).orElse(Some(next.amount.toDouble))
+          }
+          (totalAcc, topAccount :: cat, next.account :: sub)
+      } match {
+        case (totals, cat, sub) =>
+          (totals, cat.distinct.sorted, sub.distinct.sorted)
+      }
 
-    val datasets = subaccounts.zip(colors).map { case (sub, color) =>
-      val series = categories.map(c => totals.getOrElse((sub, c), BigDecimal(0)).toDouble)
-      js.Dynamic.literal(
-        label = sub,
-        data = js.Array(series*),
-        backgroundColor = color
-      )
-    }
+    val colors   = Colors.pickColors(subaccounts).toList
+    val datasets = subaccounts.zip(colors)
+      .map { case (sub, color) =>
+        val series = categories.map(c => totals.getOrElse((c, sub), 0d))
+        js.Dynamic.literal(
+          label = sub,
+          data = js.Array(series*),
+          backgroundColor = color
+        )
+      }
 
     val data = js.Dynamic.literal(
       labels = js.Array(categories*),

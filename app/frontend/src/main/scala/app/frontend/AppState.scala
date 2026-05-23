@@ -14,7 +14,7 @@ final case class AppState(api: ExpensesApi) {
 
   private val rowsVar: Var[List[MonthlyExpense]] = Var(Nil)
   private val monthsVar: Var[List[String]]       = Var(Nil) // YYYY-MM
-  private val mountedVar: Var[Boolean]            = Var(false)
+  private val mountedVar: Var[Boolean]           = Var(false)
 
   private val selectedMonthVar: Var[String] = Var("") // YYYY-MM
 
@@ -25,7 +25,7 @@ final case class AppState(api: ExpensesApi) {
 
   def updateExpensesRows(rows: List[MonthlyExpense]): Unit = {
     if (monthsVar.now().isEmpty) setMonths(rows.map(_.yearMonth).distinct.sorted)
-    val sel = selectedMonthVar.now()
+    val sel      = selectedMonthVar.now()
     val filtered =
       if (sel.isEmpty) rows
       else rows.filter(_.yearMonth == sel)

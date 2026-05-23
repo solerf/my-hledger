@@ -24,7 +24,11 @@ object Main:
         )
       )
 
-    val observerMonth = Observer[String] { month =>
+    mountApp(state, api)
+  }
+
+  private def mountApp(state: AppState, api: ExpensesApi): Unit = {
+    def monthObserver = Observer[String] { month =>
       api.fetchExpensesBy(month)
         .foreach(
           _.bimap(
@@ -34,10 +38,6 @@ object Main:
         )
     }
 
-    mountApp(state, observerMonth)
-  }
-
-  private def mountApp(state: AppState, monthObserver: Observer[String]): Unit = {
     val component = Views.render(state, monthObserver)
     val container = dom.document.getElementById("app")
     val _         = L.render(container, component)

@@ -11,7 +11,7 @@ object BarChartView:
 
   private val handle = new Instance(canvasId)
 
-  def view(rowsSignal: Signal[List[Row]]): HtmlElement =
+  def view(dataRowsSignal: Signal[List[Row]]): HtmlElement =
     div(
       cls := "card shadow-sm mb-4",
       div(
@@ -21,7 +21,7 @@ object BarChartView:
           cls := "chart-wrap",
           canvasTag(idAttr := canvasId, widthAttr := 960, heightAttr := 360)
         ),
-        rowsSignal --> Observer[List[Row]](render)
+        dataRowsSignal --> Observer[List[Row]](render)
       )
     )
 

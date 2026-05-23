@@ -73,10 +73,12 @@ object Views:
           value <-- state.signals.monthSelected,
           onChange.mapToValue --> state.selectedMonthWriter
         ),
-        children <-- state.signals.months.combineWith(state.signals.monthSelected).map {
-          case (months, sel) =>
-            months.map(m => option(value := m, selected := (m == sel), m))
-        },
+        children <--
+          state.signals.months
+            .combineWith(state.signals.monthSelected).map {
+              case (months, sel) =>
+                months.map(m => option(value := m, selected := (m == sel), m))
+            },
         state.signals.monthSelected.changes --> monthChangeObserver
       )
     )
@@ -104,7 +106,7 @@ object Views:
     rows
       .groupBy(_.account.split(":").head)
       .toList
-      .sortBy(_._1)
+      .sortBy(_._1) // head account
       .flatMap {
         case (parentAcc, subAccRows) =>
           val isExpense = parentAcc == "expenses"
