@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,7 +16,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/solerf/my-hledger/cli/internal/docker"
+	"github.com/solerf/my-hledger/internal/docker"
 )
 
 const containerDataDir = "/opt/hledger_data"
@@ -97,18 +98,28 @@ func (c *ImportCmd) Run() error {
 		return fmt.Errorf("stat %q: %w", absData, err)
 	}
 
-	absCSV, err := absUnder(c.CSV, absData, "csv")
+	absCSV, err := absoluteUnder(c.CSV, absData, "csv")
 	if err != nil {
 		return err
 	}
-	absJournal, err := absUnder(c.Journal, absData, "journal")
+
+	absJournal, err := absoluteUnder(c.Journal, absData, "journal")
 	if err != nil {
 		return err
 	}
 
 	rulesPath := absCSV + ".rules"
+	var ctrRules string
 	if _, err := os.Stat(rulesPath); err != nil {
-		return fmt.Errorf("rules file %q: %w", rulesPath, err)
+		if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("rules file %q: %w", rulesPath, err)
+		}
+		fmt.Printf("no rules will be considered for hledger, file %q not found; skipping it\n", rulesPath)
+	} else {
+		ctrRules, err = containerPath(rulesPath, absData)
+		if err != nil {
+			return err
+		}
 	}
 
 	absTranslated := absCSV + ".translated.csv"
@@ -120,10 +131,7 @@ func (c *ImportCmd) Run() error {
 	if err != nil {
 		return err
 	}
-	ctrRules, err := containerPath(rulesPath, absData)
-	if err != nil {
-		return err
-	}
+
 	ctrJournal, err := containerPath(absJournal, absData)
 	if err != nil {
 		return err
@@ -142,6 +150,12 @@ func (c *ImportCmd) Run() error {
 		return fmt.Errorf("image %q not found locally; build it first (e.g. `docker build -f Dockerfile-hledger -t %s .`)", c.Image, c.Image)
 	}
 
+	args := []string{"import", "--verbose-tags"}
+	if ctrRules != "" {
+		args = append(args, "--rules-file", ctrRules)
+	}
+	args = append(args, ctrTranslated)
+
 	opts := docker.RunOpts{
 		Image:  c.Image,
 		User:   docker.CurrentUser(),
@@ -152,7 +166,7 @@ func (c *ImportCmd) Run() error {
 		Volumes: []docker.VolumeMount{
 			{Host: absData, Container: containerDataDir},
 		},
-		Args: []string{"import", "--verbose-tags", "--rules-file", ctrRules, ctrTranslated},
+		Args: args,
 	}
 
 	if c.DryRun {
@@ -209,7 +223,7 @@ func fileHash(path string) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
-func absUnder(p, dataDir, label string) (string, error) {
+func absoluteUnder(p, dataDir, label string) (string, error) {
 	abs, err := filepath.Abs(p)
 	if err != nil {
 		return "", fmt.Errorf("resolving %s path %q: %w", label, p, err)

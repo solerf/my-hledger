@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 var accountTypeMap = map[string]string{
@@ -62,6 +63,10 @@ func translateCSV(src, dst string) error {
 			return fmt.Errorf("line %d: got %d columns, expected 4 or 5", lineno, len(row))
 		}
 
+		parsedDate, err := translateDate(date)
+		if err != nil {
+			return fmt.Errorf("line %d: date: %w", lineno, err)
+		}
 		fromAcct, err := translateAccount(from)
 		if err != nil {
 			return fmt.Errorf("line %d: from: %w", lineno, err)
@@ -72,10 +77,10 @@ func translateCSV(src, dst string) error {
 		}
 
 		out = append(out, []string{
-			strings.TrimSpace(date),
+			strings.TrimSpace(parsedDate),
 			strings.ToUpper(strings.TrimSpace(desc)),
-			toAcct,
 			fromAcct,
+			toAcct,
 			strings.TrimSpace(strings.ReplaceAll(amount, ",", ".")),
 		})
 	}
@@ -121,4 +126,19 @@ func translateAccount(raw string) (string, error) {
 		}
 	}
 	return strings.Join(clean, ":"), nil
+}
+
+func translateDate(rawDate string) (string, error) {
+	// just ensure it is a valid date and return it in expected format
+	_, err := time.Parse("2006-01-02", rawDate)
+	if err == nil {
+		return rawDate, nil
+	}
+
+	var parsed time.Time
+	parsed, err = time.Parse("20060102", rawDate)
+	if err == nil {
+		return parsed.Format("2006-01-02"), nil
+	}
+	return "", fmt.Errorf("date in invalid format: %q", rawDate)
 }
