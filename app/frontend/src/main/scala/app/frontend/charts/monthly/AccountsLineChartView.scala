@@ -1,6 +1,7 @@
-package app.frontend.charts
+package app.frontend.charts.monthly
 
 import app.frontend.Row
+import app.frontend.charts.{Colors, Instance}
 import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js

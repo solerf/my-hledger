@@ -11,7 +11,6 @@ sealed trait HledgerApi[F[_]]:
   def transactions(): F[List[Transaction]]
   def accountNames(): F[List[String]]
 
-
 object HledgerApi:
 
   def apply[F[_]: Concurrent](base: Uri, client: Client[F]): HledgerApi[F] =

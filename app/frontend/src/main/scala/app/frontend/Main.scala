@@ -1,7 +1,7 @@
 package app.frontend
 
 import app.frontend.charts.Theme
-import cats.syntax.all.catsSyntaxEither
+import app.frontend.view.Root
 import com.raquo.laminar.api.L
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
@@ -15,30 +15,19 @@ object Main:
     val api   = new ExpensesApi
     val state = AppState(api)
 
-    api
-      .fetchExpenses()
-      .foreach(
-        _.bimap(
-          err => dom.console.error(s"failed: $err"),
-          state.updateExpensesRows
-        )
-      )
+    // Forward the raw result; AppState decides whether to render rows or
+    // surface the error.
+    api.fetchExpenses().foreach(state.updateExpensesRows)
 
     mountApp(state, api)
   }
 
   private def mountApp(state: AppState, api: ExpensesApi): Unit = {
     def monthObserver = Observer[String] { month =>
-      api.fetchExpensesBy(month)
-        .foreach(
-          _.bimap(
-            err => dom.console.error(s"failed: $err"),
-            state.updateExpensesRows
-          )
-        )
+      api.fetchExpensesBy(month).foreach(state.updateExpensesRows)
     }
 
-    val component = Views.render(state, monthObserver)
+    val component = Root.render(state, monthObserver)
     val container = dom.document.getElementById("app")
     val _         = L.render(container, component)
   }

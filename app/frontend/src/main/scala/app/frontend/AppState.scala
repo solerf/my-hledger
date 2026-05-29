@@ -1,7 +1,15 @@
 package app.frontend
 
+import app.frontend.ExpensesApi.ErrorOr
 import app.shared.dtos.MonthlyExpense
 import com.raquo.laminar.api.L.*
+
+import scala.collection.mutable
+
+enum NavView(val label: String):
+  case Monthly     extends NavView("Monthly")
+  case YearToNow   extends NavView("Year To Now")
+  case ManualEntry extends NavView("Manual Entry")
 
 final case class Row(
   yearMonth: String,
@@ -15,26 +23,42 @@ final case class Row(
 
 final case class AppState(api: ExpensesApi) {
 
-  private val rowsVar: Var[List[MonthlyExpense]] = Var(Nil)
-  private val monthsVar: Var[List[String]]       = Var(Nil) // YYYY-MM
-  private val mountedVar: Var[Boolean]           = Var(false)
+  // ── Shared chrome ────────────────────────────────────────────────
+  private val navViewVar: Var[NavView] = Var(NavView.Monthly)
 
-  private val selectedMonthVar: Var[String] = Var("") // YYYY-MM
+  val navViewWriter: Var[NavView] = navViewVar
+  val navView: Signal[NavView]    = navViewVar.signal
 
-  val signals: Signals =
-    new Signals(rowsVar.signal, monthsVar.signal, selectedMonthVar.signal, mountedVar.signal)
+  // ── Monthly view state ───────────────────────────────────────────
+  // The raw API result drives the view directly: a loading panel until
+  // the first response arrives, then either the rendered rows or the
+  // surfaced error message.
+  private val monthlyVar: Var[Loadable[List[MonthlyExpense]]] = Var(Loadable.Loading)
+  private val monthsVar: Var[List[String]]                    = Var(Nil) // YYYY-MM
+  private val selectedMonthVar: Var[String]                   = Var("")  // YYYY-MM
 
   val selectedMonthWriter: Var[String] = selectedMonthVar
 
-  def updateExpensesRows(rows: List[MonthlyExpense]): Unit = {
-    if (monthsVar.now().isEmpty) setMonths(rows.map(_.yearMonth).distinct.sorted)
-    val sel      = selectedMonthVar.now()
-    val filtered =
-      if (sel.isEmpty) rows
-      else rows.filter(_.yearMonth == sel)
-    rowsVar.set(filtered)
-    if (!mountedVar.now()) mountedVar.set(true)
-  }
+  val signals: Signals =
+    new Signals(monthlyVar.signal, monthsVar.signal, selectedMonthVar.signal)
+
+  /** Forward a raw API result into the monthly view state. On success the
+    * rows are filtered to the selected month and exposed for rendering; on
+    * failure the error message is surfaced in place of the content.
+    */
+  def updateExpensesRows(result: ErrorOr[List[MonthlyExpense]]): Unit =
+    result match {
+      case Right(rows) =>
+        if (monthsVar.now().isEmpty) setMonths(rows.map(_.yearMonth).distinct.sorted)
+        val sel      = selectedMonthVar.now()
+        val filtered =
+          if (sel.isEmpty) rows
+          else rows.filter(_.yearMonth == sel)
+        monthlyVar.set(Loadable.Loaded(filtered))
+
+      case Left(err) =>
+        monthlyVar.set(Loadable.Failed(err.toString))
+    }
 
   private def setMonths(months: List[String]): Unit = {
     monthsVar.set(months)
@@ -42,14 +66,21 @@ final case class AppState(api: ExpensesApi) {
   }
 
   final class Signals private[AppState] (
-    val monthlyExpenses: Signal[List[MonthlyExpense]],
+    val monthly: Signal[Loadable[List[MonthlyExpense]]],
     val months: Signal[List[String]],
-    val monthSelected: Signal[String],
-    val mounted: Signal[Boolean]
+    val monthSelected: Signal[String]
   ) {
+
+    // Rows currently available for rendering — empty while loading or failed.
+    private val monthlyExpenses: Signal[List[MonthlyExpense]] =
+      monthly.map {
+        case Loadable.Loaded(rows) => rows
+        case _                     => Nil
+      }
 
     final private case class RowsPartition(
       expenses: List[Row],
+      liabilities: List[Row],
       revenues: List[Row],
       rawRevenues: List[Row]
     )
@@ -57,63 +88,67 @@ final case class AppState(api: ExpensesApi) {
     private val partitions: Signal[RowsPartition] = monthlyExpenses.map(partitionMonthlyEntries)
 
     val expenses: Signal[List[Row]]    = partitions.map(_.expenses)
+    val liabilities: Signal[List[Row]] = partitions.map(_.liabilities)
     val revenues: Signal[List[Row]]    = partitions.map(_.revenues)
     val rawRevenues: Signal[List[Row]] = partitions.map(_.rawRevenues)
 
-    val expensesAndRevenuesByDate: Signal[List[(String, List[Row])]] =
-      expenses.combineWith(revenues).map(_ ++ _).map(_.groupBy(_.date).toList.sortBy(_._1).reverse)
+    val entriesAsRows: Signal[List[(String, List[Row])]] =
+      expenses
+        .combineWith(revenues)
+        .combineWith(liabilities)
+        .map(_ ++ _ ++ _)
+        .map(_.groupBy(_.date).toList.sortBy(_._1).reverse)
 
     val dailySpend: Signal[List[(String, Double)]]  = expenses.map(dailyTotals)
     val dailyIncome: Signal[List[(String, Double)]] = revenues.map(dailyTotals)
 
     private def partitionMonthlyEntries(monthlyEntries: List[MonthlyExpense]): RowsPartition = {
+
+      def getAccountPrefix(account: String): Option[String] =
+        Option.when {
+          account.startsWith("expense") ||
+          account.startsWith("revenues") ||
+          account.startsWith("liabilities")
+        }(account.split(":").head)
+
       val union = monthlyEntries.map { me =>
         val (comment, desc) = (me.comment, me.description)
         // 1st fold inner
-        me.entries.foldLeft((List.empty[Row], List.empty[Row], List.empty[Row])) {
-          case ((exp, rev, rawRev), next) if next.account.startsWith("expense") =>
-            (
-              Row(
-                yearMonth = me.yearMonth,
-                account = next.account,
-                comment = comment,
-                description = desc,
-                txComment = next.comment,
-                date = next.date,
-                amount = next.amount
-              ) :: exp,
-              rev,
-              rawRev
-            )
-
-          case ((exp, rev, rawRev), next) if next.account.startsWith("revenues") =>
-            // Income postings are stored as negatives in hledger (credits) invert them so they plot as positive
-            val row = Row(
-              yearMonth = me.yearMonth,
-              account = next.account,
-              comment = comment,
-              description = desc,
-              txComment = next.comment,
-              date = next.date,
-              amount = next.amount
-            )
-            (
-              exp,
-              row.copy(amount = next.amount * -1) :: rev,
-              row :: rawRev
-            )
-
-          case ((exp, rev, rawRev), _) =>
-            (exp, rev, rawRev)
+        me.entries.foldLeft(mutable.Map.empty[String, List[Row]]) {
+          case (acc, next) =>
+            getAccountPrefix(next.account) match {
+              case None          => acc
+              case Some(accName) =>
+                val row = Row(
+                  yearMonth = me.yearMonth,
+                  account = next.account,
+                  comment = comment,
+                  description = desc,
+                  txComment = next.comment,
+                  date = next.date,
+                  amount = next.amount
+                )
+                val _ = acc.updateWith(accName) {
+                  case Some(v) => Some(row :: v)
+                  case _       => Some(List(row))
+                }
+                acc
+            }
         }
       }
-        // 2nd fold outer
-        .foldLeft((List.empty[Row], List.empty[Row], List.empty[Row])) {
-          case ((expAcc, revAcc, rawRevAcc), (exp, rev, rawRev)) =>
-            (expAcc ++ exp, revAcc ++ rev, rawRevAcc ++ rawRev)
+        // 2nd "fold" outer
+        .reduce {
+          case (m1, m2) =>
+            m1 ++ m2.map { case (k, v) => k -> (v ++ m1.getOrElse(k, List.empty)) }
         }
 
-      RowsPartition(union._1.reverse, union._2.reverse, union._3.reverse)
+      RowsPartition(
+        expenses = union.getOrElse("expenses", List.empty),
+        liabilities = union.getOrElse("liabilities", List.empty),
+        // Income postings are stored as negatives in hledger (credits) invert them so they plot as positive
+        revenues = union.getOrElse("revenues", List.empty).map(r => r.copy(amount = r.amount * -1)),
+        rawRevenues = union.getOrElse("expenses", List.empty)
+      )
     }
 
     private def dailyTotals(rows: List[Row]): List[(String, Double)] =

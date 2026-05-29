@@ -33,27 +33,27 @@ object Theme:
     // poking individual properties — otherwise we'd hit
     // `Cannot set properties of undefined`.
 
-    d.color       = Ink
+    d.color = Ink
     d.borderColor = Ink
-    d.font        = js.Dynamic.literal(
+    d.font = js.Dynamic.literal(
       family = FontFam,
       weight = "600",
       size = 13
     )
 
     // Per-shape defaults — thick ink outlines.
-    d.elements.bar.borderColor   = Ink
-    d.elements.bar.borderWidth   = 2
-    d.elements.arc.borderColor   = Ink
-    d.elements.arc.borderWidth   = 2
-    d.elements.line.borderWidth  = 3
+    d.elements.bar.borderColor = Ink
+    d.elements.bar.borderWidth = 2
+    d.elements.arc.borderColor = Ink
+    d.elements.arc.borderWidth = 2
+    d.elements.line.borderWidth = 3
     d.elements.point.borderColor = Ink
     d.elements.point.borderWidth = 2
-    d.elements.point.radius      = 4
+    d.elements.point.radius = 4
 
     // Legend labels — chunky ink text.
     d.plugins.legend.labels.color = Ink
-    d.plugins.legend.labels.font  = js.Dynamic.literal(
+    d.plugins.legend.labels.font = js.Dynamic.literal(
       family = FontFam,
       weight = "700",
       size = 12
@@ -61,9 +61,9 @@ object Theme:
 
     // Tooltip — ink background, white text.
     d.plugins.tooltip.backgroundColor = Ink
-    d.plugins.tooltip.titleColor      = "#ffffff"
-    d.plugins.tooltip.bodyColor       = "#ffffff"
-    d.plugins.tooltip.borderColor     = Ink
-    d.plugins.tooltip.borderWidth     = 2
-    d.plugins.tooltip.cornerRadius    = 4
+    d.plugins.tooltip.titleColor = "#ffffff"
+    d.plugins.tooltip.bodyColor = "#ffffff"
+    d.plugins.tooltip.borderColor = Ink
+    d.plugins.tooltip.borderWidth = 2
+    d.plugins.tooltip.cornerRadius = 4
   }

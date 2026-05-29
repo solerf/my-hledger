@@ -36,6 +36,21 @@ table {
 }
 
 .entries-scroll tbody tr { transition: background-color 90ms ease; }
+
+/* Zebra striping on the paper tint — overrides Bootstrap's grey
+   (Bootstrap stripes via --bs-table-bg-type on the cells). */
+.entries-scroll table.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-bg-type: var(--nb-paper);
+}
+
+/* Per-account subtotal rows (the italic header rows) get a lime
+   slab with a thick top rule so each account block reads as a unit. */
+.entries-scroll tbody tr:has(td.text-end.fst-italic) {
+    background: var(--nb-lime) !important;
+    border-top: var(--nb-border);
+}
+.entries-scroll tbody tr:has(td.text-end.fst-italic) td { font-weight: 800; }
+
 .entries-scroll tbody tr:hover { background-color: var(--nb-cyan) !important; }
 
 /* Per-day band: sticks just below the header while scrolling. */
@@ -73,4 +88,12 @@ table {
 .text-danger {
     color: #c10b0b !important;
     font-weight: 800;
+}
+
+/* Tighten cell padding on narrow viewports so the table stays
+   readable without horizontal scrolling on phones. */
+@media (max-width: 575.98px) {
+    .entries-scroll td,
+    .entries-scroll th { padding: 0.4rem 0.5rem; font-size: 0.85rem; }
+    .entries-scroll tbody tr.table-secondary td { font-size: 0.95rem; }
 }

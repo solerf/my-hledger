@@ -1,22 +1,25 @@
-package app.frontend
+package app.frontend.view
 
 import app.frontend.charts.{AccountsLineChartView, BarChartView, LineChartView, StackedBarChartView}
-import com.raquo.laminar.api.L
+import app.frontend.{AppState, Loadable, Row}
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.{HTMLDivElement, HTMLTableRowElement}
 
-object Views:
+/** Monthly expenses view: the charts and the entries table for the selected
+  * month. Owns the loading/error states for the monthly data feed.
+  */
+object Monthly:
 
-  def render(
+  def view(
     state: AppState,
     monthChangeObserver: Observer[String]
   ): ReactiveHtmlElement[HTMLDivElement] =
     div(
-      navbar(),
-      child <-- state.signals.mounted.distinct.map { loaded =>
-        if (!loaded) div(cls := "row", div(cls := "col-12", noJournal()))
-        else loadedView(state, monthChangeObserver)
+      child <-- state.signals.monthly.map {
+        case Loadable.Loading     => Panel("Loading", "Loading journal…")
+        case Loadable.Failed(msg) => Panel("Journal not found", msg)
+        case Loadable.Loaded(_)   => loadedView(state, monthChangeObserver)
       }
     )
 
@@ -42,24 +45,7 @@ object Views:
         cls := "row",
         div(cls := "col-12", AccountsLineChartView.view(state.signals.expenses))
       ),
-      entriesTable(state.signals.expensesAndRevenuesByDate)
-    )
-
-  private def noJournal() =
-    div(
-      cls  := "alert alert-warning shadow-sm mb-4",
-      role := "alert",
-      "Hledger Journal not found"
-    )
-
-  private def navbar(): HtmlElement =
-    navTag(
-      cls := "navbar navbar-dark bg-dark mb-4 rounded",
-      div(
-        cls := "container-fluid",
-        span(cls := "navbar-brand mb-0 h1", "my-hledger"),
-        span(cls := "navbar-text text-light small", "monthly expenses")
-      )
+      entriesTable(state.signals.entriesAsRows)
     )
 
   private def monthSelector(state: AppState, monthChangeObserver: Observer[String]): HtmlElement =
@@ -109,7 +95,7 @@ object Views:
       .sortBy(_._1) // head account
       .flatMap {
         case (parentAcc, subAccRows) =>
-          val isExpense = parentAcc == "expenses"
+          val isExpense = parentAcc == "expenses" || parentAcc == "liabilities"
           val accSum    = subAccRows.map(_.amount).sum
 
           val headerDesc = subAccRows.headOption

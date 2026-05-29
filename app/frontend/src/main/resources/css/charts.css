@@ -33,7 +33,7 @@
    ink border so the chart reads as a discrete brutalist block. */
 .chart-wrap {
     width: 100%;
-    height: 360px;
+    height: clamp(220px, 45vw, 360px);
     margin-bottom: 0.5rem;
     position: relative;
     background: #fff;

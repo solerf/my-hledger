@@ -22,6 +22,39 @@
 }
 .navbar .navbar-text { font-weight: 600; opacity: 0.85; }
 
+/* Nav menu links — flat slabs that fill with accent + ink shift on
+   hover/active, matching the brutalist button language. */
+.navbar .nav-link {
+    color: #fff !important;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: 2px solid transparent;
+    border-radius: var(--nb-radius);
+    padding: 0.35rem 0.75rem;
+    transition: background-color 80ms ease, color 80ms ease;
+}
+.navbar .nav-link:hover  { background: #fff; color: var(--nb-ink) !important; }
+.navbar .nav-link.active  {
+    background: #fff;
+    color: var(--nb-ink) !important;
+    border-color: var(--nb-ink);
+}
+
+/* Hamburger toggler — square ink-bordered button. */
+.navbar-toggler {
+    border: var(--nb-border) !important;
+    border-radius: var(--nb-radius) !important;
+    background: var(--nb-yellow);
+    padding: 0.3rem 0.55rem;
+}
+.navbar-toggler:focus { outline: none !important; box-shadow: var(--nb-shadow-sm) !important; }
+
+/* On stacked (collapsed) layout give menu items breathing room. */
+@media (max-width: 767.98px) {
+    .navbar-nav { gap: 0.4rem; margin-top: 0.75rem; }
+}
+
 /* Month picker: label sits inline next to the select. */
 .month-selector {
     display: inline-flex;
@@ -29,3 +62,12 @@
     gap: 0.75rem;
 }
 .month-selector .form-label { margin-bottom: 0; }
+
+/* Generic brutalist panel — used by view placeholders. */
+.nb-panel {
+    background: var(--nb-paper);
+    border: var(--nb-border);
+    border-radius: var(--nb-radius);
+    box-shadow: var(--nb-shadow) !important;
+    padding: 2rem;
+}

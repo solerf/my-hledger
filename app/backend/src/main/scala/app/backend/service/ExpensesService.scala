@@ -46,7 +46,8 @@ object ExpensesService:
                         account = p.paccount,
                         amount = BigDecimal(p.pamount.head.aquantity.floatingPoint),
                         currency = p.pamount.head.acommodity,
-                        comment = Option(p.pcomment.trim()).filter(_.nonEmpty).getOrElse(t.tcomment.trim())
+                        comment =
+                          Option(p.pcomment.trim()).filter(_.nonEmpty).getOrElse(t.tcomment.trim())
                       )
                     }
                   MonthlyExpense(

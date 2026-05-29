@@ -35,7 +35,7 @@ body {
     font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
     background: var(--nb-bg);
     color: var(--nb-ink);
-    margin: 1.25rem;
+    margin: clamp(0.5rem, 3vw, 1.25rem);
     font-weight: 500;
     letter-spacing: 0.01em;
 }
