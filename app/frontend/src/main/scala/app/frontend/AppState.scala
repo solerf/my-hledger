@@ -2,9 +2,10 @@ package app.frontend
 
 import app.frontend.ExpensesApi.ErrorOr
 import app.shared.dtos.MonthlyExpense
-import com.raquo.laminar.api.L.*
 
 import scala.collection.mutable
+
+import com.raquo.laminar.api.L.*
 
 enum NavView(val label: String):
   case Monthly     extends NavView("Monthly")
@@ -28,6 +29,14 @@ final case class AppState(api: ExpensesApi) {
 
   val navViewWriter: Var[NavView] = navViewVar
   val navView: Signal[NavView]    = navViewVar.signal
+
+  // ── Backend/hledger-web connectivity ─────────────────────────────
+  // Optimistically assume reachable until the bootstrap health check says
+  // otherwise; when false the views are replaced by an error panel.
+  private val hledgerReachableVar: Var[Boolean] = Var(true)
+  val hledgerReachable: Signal[Boolean]         = hledgerReachableVar.signal
+
+  def setHledgerReachable(reachable: Boolean): Unit = hledgerReachableVar.set(reachable)
 
   // ── Monthly view state ───────────────────────────────────────────
   // The raw API result drives the view directly: a loading panel until

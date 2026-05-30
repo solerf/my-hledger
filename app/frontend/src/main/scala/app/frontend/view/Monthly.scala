@@ -1,7 +1,10 @@
 package app.frontend.view
 
-import app.frontend.charts.{AccountsLineChartView, BarChartView, LineChartView, StackedBarChartView}
+import app.frontend.charts.monthly.{
+  AccountsLineChartView, BarChartView, LineChartView, StackedBarChartView
+}
 import app.frontend.{AppState, Loadable, Row}
+
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.{HTMLDivElement, HTMLTableRowElement}

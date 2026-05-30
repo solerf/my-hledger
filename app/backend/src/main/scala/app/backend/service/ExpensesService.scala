@@ -1,8 +1,9 @@
 package app.backend.service
 
-import app.backend.hledger.HledgerApi
 import app.backend.hledger.model.Transaction
-import app.shared.dtos.{ExpenseEntry, MonthlyExpense}
+import app.backend.hledger.{HledgerApi, add as addPayload}
+import app.shared.dtos.{ExpenseEntry, MonthlyExpense, NewTransaction}
+
 import cats.Monad
 import cats.syntax.all.*
 import org.typelevel.log4cats.{Logger, LoggerFactory}
@@ -10,6 +11,8 @@ import org.typelevel.log4cats.{Logger, LoggerFactory}
 sealed trait ExpensesService[F[_]]:
   def monthly(month: Option[String]): F[List[MonthlyExpense]]
   def accounts(): F[List[String]]
+  def add(transactions: List[NewTransaction]): F[Unit]
+  def hledgerReachable(): F[Boolean]
 
 object ExpensesService:
 
@@ -63,4 +66,11 @@ object ExpensesService:
     override def accounts(): F[List[String]] =
       Logger[F].info("accounts: listing accountnames") *>
         hledgerAPI.accountNames().map(_.distinct.sorted)
+
+    override def add(transactions: List[NewTransaction]): F[Unit] =
+      Logger[F].info(s"add: posting ${transactions.size} transaction(s)") *>
+        transactions.traverse_(t => hledgerAPI.addTransaction(addPayload.fromNewTransaction(t)))
+
+    override def hledgerReachable(): F[Boolean] =
+      hledgerAPI.reachable().flatTap(ok => Logger[F].info(s"hledgerReachable: $ok"))
   }

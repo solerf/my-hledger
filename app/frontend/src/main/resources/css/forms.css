@@ -28,6 +28,14 @@
     box-shadow: var(--nb-shadow) !important;
 }
 
+/* Invalid fields: just a red ink border (no Bootstrap icon/message). The
+   compound selector + !important beats the base `.form-control` border. */
+.form-select.is-invalid,
+.form-control.is-invalid {
+    border-color: #c10b0b !important;
+    background-image: none !important;
+}
+
 .btn {
     border: var(--nb-border) !important;
     border-radius: var(--nb-radius) !important;

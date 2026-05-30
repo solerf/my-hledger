@@ -2,6 +2,7 @@ package app.backend
 
 import app.backend.hledger.HledgerApi
 import app.backend.service.ExpensesService
+
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.comcast.ip4s.*
 import org.http4s.ember.client.EmberClientBuilder

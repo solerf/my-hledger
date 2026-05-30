@@ -140,3 +140,10 @@ commands ++= Seq(
     "backend/reStop" :: state
   }
 )
+
+// --- Formatting ---------------------------------------------------------------
+// `fmt` rewrites sources in place across every module: scalafix runs first
+// (OrganizeImports — merges/sorts imports, drops unused), then scalafmt has the
+// final say on layout. `fmtCheck` is the non-mutating CI variant.
+addCommandAlias("fmt", "scalafixAll ; scalafmtAll")
+addCommandAlias("fmtCheck", "scalafmtCheckAll ; scalafixAll --check")

@@ -2,14 +2,14 @@ package app.backend
 
 import app.backend.service.ExpensesService
 import app.shared.dtos.*
-import cats.Monad
-import cats.effect.Async
+
+import cats.effect.{Async, Concurrent}
 import cats.syntax.all.*
 import cats.syntax.semigroupk.*
 import fs2.io.file.Files
 import fs2.io.file.Path.fromNioPath
 import io.circe.syntax.*
-import org.http4s.circe.CirceEntityEncoder.*
+import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.dsl.io.*
 import org.http4s.server.Router
 import org.http4s.server.middleware.Logger as RequestLogger
@@ -57,7 +57,7 @@ object Routes:
 
   private object MonthParam extends OptionalQueryParamDecoderMatcher[String]("month")
 
-  private def apiRoutes[F[_]: {Monad, Logger}](
+  private def apiRoutes[F[_]: {Concurrent, Logger}](
     expensesService: ExpensesService[F]
   ): HttpRoutes[F] =
     HttpRoutes.of[F] {
@@ -67,9 +67,23 @@ object Routes:
           expenses <- expensesService.monthly(month)
         } yield Response[F](Status.Ok).withEntity(expenses.asJson)
 
+      case GET -> Root / "health" =>
+        for {
+          _  <- Logger[F].info("GET /api/health")
+          ok <- expensesService.hledgerReachable()
+          status = if (ok) Status.Ok else Status.ServiceUnavailable
+        } yield Response[F](status)
+
       case GET -> Root / "accounts" =>
         for {
           _        <- Logger[F].info("GET /api/accounts")
           accounts <- expensesService.accounts()
         } yield Response[F](Status.Ok).withEntity(accounts.asJson)
+
+      case req @ POST -> Root / "transactions" =>
+        for {
+          txns <- req.as[List[NewTransaction]]
+          _    <- Logger[F].info(s"POST /api/transactions count=${txns.size}")
+          _    <- expensesService.add(txns)
+        } yield Response[F](Status.Created)
     }

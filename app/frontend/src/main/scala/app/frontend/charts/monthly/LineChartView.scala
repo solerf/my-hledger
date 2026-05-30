@@ -1,9 +1,10 @@
 package app.frontend.charts.monthly
 
 import app.frontend.charts.Instance
-import com.raquo.laminar.api.L.*
 
 import scala.scalajs.js
+
+import com.raquo.laminar.api.L.*
 
 object LineChartView:
 

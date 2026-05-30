@@ -1,6 +1,7 @@
 package app.frontend.view
 
 import app.frontend.{AppState, NavView}
+
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.HTMLDivElement
@@ -16,11 +17,18 @@ object Root:
   ): ReactiveHtmlElement[HTMLDivElement] =
     div(
       navbar(state),
-      child <-- state.navView.distinct.map {
-        case NavView.Monthly     => Monthly.view(state, monthChangeObserver)
-        case NavView.YearToNow   => YearToNow.view
-        case NavView.ManualEntry => ManualEntry.view
+      child <-- state.hledgerReachable.combineWith(state.navView).distinct.map {
+        case (false, _)                  => unreachablePanel
+        case (true, NavView.Monthly)     => Monthly.view(state, monthChangeObserver)
+        case (true, NavView.YearToNow)   => YearToNow.view
+        case (true, NavView.ManualEntry) => ManualEntry.view(state)
       }
+    )
+
+  private def unreachablePanel: ReactiveHtmlElement[HTMLDivElement] =
+    Panel(
+      "hledger-web unavailable",
+      "Could not reach hledger-web. Make sure it is running, then reload the page."
     )
 
   private def navbar(state: AppState): HtmlElement =

@@ -2,6 +2,7 @@ package app.frontend
 
 import app.frontend.charts.Theme
 import app.frontend.view.Root
+
 import com.raquo.laminar.api.L
 import com.raquo.laminar.api.L.*
 import org.scalajs.dom
@@ -15,9 +16,15 @@ object Main:
     val api   = new ExpensesApi
     val state = AppState(api)
 
-    // Forward the raw result; AppState decides whether to render rows or
-    // surface the error.
-    api.fetchExpenses().foreach(state.updateExpensesRows)
+    // Gate startup on hledger-web reachability: if it's down the views are
+    // replaced by an error panel and there's no point fetching expenses.
+    api.checkHealth().foreach { reachable =>
+      state.setHledgerReachable(reachable)
+      if (reachable)
+        // Forward the raw result; AppState decides whether to render rows or
+        // surface the error.
+        api.fetchExpenses().foreach(state.updateExpensesRows)
+    }
 
     mountApp(state, api)
   }
