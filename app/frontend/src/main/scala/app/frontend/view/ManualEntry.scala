@@ -9,9 +9,10 @@ import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.HTMLDivElement
 
-/** Add journal entries by hand. The form drafts one transaction at a time;
-  * "Add" appends it to the pending table, "Save" posts the whole table to the
-  * backend, which forwards each entry to hledger-web.
+/** Add journal entries by hand. The form drafts one entry at a time; "Add"
+  * appends it to the pending table, "Save" posts the whole table to the backend,
+  * which groups entries by date into one hledger transaction per day (each entry
+  * contributing a to/from posting pair, in input order).
   */
 object ManualEntry:
 
@@ -81,6 +82,8 @@ object ManualEntry:
               false,
               s"Saved ${txns.size} entr${plural(txns.size)} to the journal."
             )))
+            // Refetch the journal
+            state.refreshExpenses()
           case Left(err) =>
             feedback.set(Some((true, s"Save failed: $err")))
         }
@@ -97,7 +100,7 @@ object ManualEntry:
 
   /** Mandatory fields only — description and comment are optional. */
   private def invalidKeys(d: Draft): Set[String] = {
-    val amountValid = Try(BigDecimal(d.amount.trim)).toOption.exists(_ != 0)
+    val amountValid = Try(BigDecimal(normalizeAmount(d.amount))).toOption.exists(_ != 0)
     Set(
       Option.when(d.date.isEmpty)(DateKey),
       Option.when(d.from.trim.isEmpty)(FromKey),
@@ -112,11 +115,13 @@ object ManualEntry:
       date = d.date,
       from = d.from.trim,
       to = d.to.trim,
-      amount = BigDecimal(d.amount.trim),
+      amount = BigDecimal(normalizeAmount(d.amount)),
       currency = d.currency.trim.toUpperCase,
-      description = d.description.trim,
-      comment = d.comment.trim
+      description = d.description.trim.toUpperCase,
+      comment = d.comment.trim.toUpperCase
     )
+
+  private def normalizeAmount(raw: String): String = raw.trim.replace(',', '.')
 
   private val accountsListId = "accounts-list"
 

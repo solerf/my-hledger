@@ -1,9 +1,6 @@
 package app.frontend.view
 
 import app.frontend.charts.monthly.{AccountsLineChartView, LineChartView, PieChartView}
-// BarChartView ("By account") and StackedBarChartView ("Account breakdown") are
-// temporarily disabled — see loadedView below. Re-add to the import when
-// restoring them.
 import app.frontend.{AppState, Loadable, Row}
 
 import com.raquo.laminar.api.L.*

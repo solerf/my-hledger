@@ -21,13 +21,9 @@ object Main:
     api.checkHealth().foreach { reachable =>
       state.setHledgerReachable(reachable)
       if (reachable)
-        // One fetch of the whole journal feeds both views: the monthly view
-        // (which filters to the selected month) and the year-to-now view
-        // (which keeps every month). AppState decides how to render each.
-        api.fetchExpenses().foreach { result =>
-          state.updateExpensesRows(result)
-          state.updateYearRows(result)
-        }
+        // One fetch of the whole journal feeds both views; AppState decides how
+        // to render each (monthly filters, year-to-now keeps every month).
+        state.refreshExpenses()
     }
 
     mountApp(state, api)

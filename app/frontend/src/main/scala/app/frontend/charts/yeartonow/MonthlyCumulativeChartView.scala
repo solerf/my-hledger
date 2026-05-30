@@ -50,7 +50,9 @@ object MonthlyCumulativeChartView:
         }(_ + _)
 
     // One line per (account type, currency), sorted for a stable legend/colours.
-    val series = byTypeCurrencyMonth.keys.map { case (tpe, cur, _) => (tpe, cur) }.toList.distinct.sorted
+    val series = byTypeCurrencyMonth.keys.map { case (tpe, cur, _) =>
+      (tpe, cur)
+    }.toList.distinct.sorted
     val colors = Colors.pickColors(series.map { case (tpe, cur) => s"$tpe ($cur)" }).toList
 
     val datasets = series.zip(colors).map {

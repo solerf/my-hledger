@@ -4,6 +4,7 @@ import app.frontend.ExpensesApi.ErrorOr
 import app.shared.dtos.MonthlyExpense
 
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import com.raquo.laminar.api.L.*
 
@@ -37,6 +38,12 @@ final case class AppState(api: ExpensesApi) {
   val hledgerReachable: Signal[Boolean]         = hledgerReachableVar.signal
 
   def setHledgerReachable(reachable: Boolean): Unit = hledgerReachableVar.set(reachable)
+
+  def refreshExpenses(): Unit =
+    api.fetchExpenses().foreach { result =>
+      updateExpensesRows(result)
+      updateYearRows(result)
+    }
 
   // ── Monthly view state ───────────────────────────────────────────
   // The raw API result drives the view directly: a loading panel until

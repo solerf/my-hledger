@@ -67,9 +67,15 @@ object ExpensesService:
       Logger[F].info("accounts: listing accountnames") *>
         hledgerAPI.accountNames().map(_.distinct.sorted)
 
-    override def add(transactions: List[NewTransaction]): F[Unit] =
-      Logger[F].info(s"add: posting ${transactions.size} transaction(s)") *>
-        transactions.traverse_(t => hledgerAPI.addTransaction(addPayload.fromNewTransaction(t)))
+    override def add(transactions: List[NewTransaction]): F[Unit] = {
+      // Entries are grouped into one transaction per date (see
+      // add.fromNewTransactions), so the journal gets one multi-posting entry
+      // per day rather than one transaction per drafted row.
+      val grouped = addPayload.fromNewTransactions(transactions)
+      Logger[F].info(
+        s"add: posting ${grouped.size} transaction(s) from ${transactions.size} entries"
+      ) *> grouped.traverse_(hledgerAPI.addTransaction)
+    }
 
     override def hledgerReachable(): F[Boolean] =
       hledgerAPI.reachable().flatTap(ok => Logger[F].info(s"hledgerReachable: $ok"))

@@ -69,30 +69,72 @@ object add:
     ttags: List[String]
   ) derives Encoder.AsObject
 
-  /** Build the add payload from a drafted transaction: the `to` account is
-    * posted positive, the `from` account negative, so the pair balances.
+  /** Build add payloads from drafted entries, grouped into one transaction per
+    * date (date order, then entry order preserved). Each entry contributes two
+    * postings — its `to` account positive, its `from` account negative — so the
+    * transaction balances, with postings kept in input order.
+    *
+    * The transaction description is the entries' descriptions joined (`cafe,
+    * metro`). Each entry's `id:` dedup tag lives on its `to` posting's comment,
+    * following the same `id:%date %amount %description` rule as the CLI import
+    * (see data/rules/translated.rules). Space-separated because hledger collapses
+    * adjacent `%a-%b` references (keeping only the last). Any free-text comment
+    * the user typed is appended after the tag, comma-separated so it doesn't
+    * bleed into the id value.
     */
-  def fromNewTransaction(t: NewTransaction): Transaction =
+  def fromNewTransactions(transactions: List[NewTransaction]): List[Transaction] =
+    // distinct keeps first-occurrence date order; filter keeps entry order.
+    transactions.map(_.date).distinct.map { date =>
+      groupedTransaction(date, transactions.filter(_.date == date))
+    }
+
+  private def groupedTransaction(date: String, entries: List[NewTransaction]): Transaction = {
+    val description =
+      entries.map(_.description.trim).filter(_.nonEmpty).distinct.mkString(", ")
+
+    val postings = entries.flatMap { e =>
+      val idTag       = s"id:${e.date} ${amountTag(e.amount)} ${e.description.trim}"
+      val userComment = e.comment.trim
+      val toComment   = if (userComment.isEmpty) idTag else s"$idTag, $userComment"
+      List(
+        posting(e.to.trim, e.amount, e.currency, toComment),
+        posting(e.from.trim, -e.amount, e.currency, "")
+      )
+    }
+
     Transaction(
       tcode = "",
-      tcomment = t.comment.trim,
-      tdate = t.date,
+      tcomment = "",
+      tdate = date,
       tdate2 = None,
-      tdescription = t.description.trim,
+      tdescription = description,
       tindex = 0,
-      tpostings = List(posting(t.to, t.amount, t.currency), posting(t.from, -t.amount, t.currency)),
+      tpostings = postings,
       tprecedingcomment = "",
+      // The transaction's source span (start, end) — two entries regardless of
+      // posting count, not one per posting.
       tsourcepos = List(SourcePos(1, 1, ""), SourcePos(1, 1, "")),
       tstatus = "Unmarked",
       ttags = Nil
     )
+  }
 
-  private def posting(account: String, amt: BigDecimal, currency: String): Posting =
+  /** The amount as it appears in the import CSV's `%amount` field: the positive
+    * value with a "." decimal mark and no exponent.
+    */
+  private def amountTag(amt: BigDecimal): String = amt.bigDecimal.toPlainString
+
+  private def posting(
+    account: String,
+    amt: BigDecimal,
+    currency: String,
+    comment: String
+  ): Posting =
     Posting(
       paccount = account,
       pamount = List(amount(amt, currency)),
       pbalanceassertion = None,
-      pcomment = "",
+      pcomment = comment,
       pdate = None,
       pdate2 = None,
       poriginal = None,
