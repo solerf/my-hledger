@@ -21,9 +21,13 @@ object Main:
     api.checkHealth().foreach { reachable =>
       state.setHledgerReachable(reachable)
       if (reachable)
-        // Forward the raw result; AppState decides whether to render rows or
-        // surface the error.
-        api.fetchExpenses().foreach(state.updateExpensesRows)
+        // One fetch of the whole journal feeds both views: the monthly view
+        // (which filters to the selected month) and the year-to-now view
+        // (which keeps every month). AppState decides how to render each.
+        api.fetchExpenses().foreach { result =>
+          state.updateExpensesRows(result)
+          state.updateYearRows(result)
+        }
     }
 
     mountApp(state, api)

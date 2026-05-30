@@ -74,6 +74,19 @@ final case class AppState(api: ExpensesApi) {
     if (selectedMonthVar.now().isEmpty) months.lastOption.foreach(selectedMonthVar.set)
   }
 
+  // ── Year-to-now view state ───────────────────────────────────────
+  // The full, unfiltered journal feed (every month). Unlike the monthly
+  // view, nothing is filtered out — the cumulative chart needs all months.
+  private val yearVar: Var[Loadable[List[MonthlyExpense]]] = Var(Loadable.Loading)
+  val year: Signal[Loadable[List[MonthlyExpense]]]         = yearVar.signal
+
+  /** Forward a raw API result into the year-to-now state, keeping every month. */
+  def updateYearRows(result: ErrorOr[List[MonthlyExpense]]): Unit =
+    result match {
+      case Right(rows) => yearVar.set(Loadable.Loaded(rows))
+      case Left(err)   => yearVar.set(Loadable.Failed(err.toString))
+    }
+
   final class Signals private[AppState] (
     val monthly: Signal[Loadable[List[MonthlyExpense]]],
     val months: Signal[List[String]],

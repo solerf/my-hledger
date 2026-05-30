@@ -20,7 +20,7 @@ object Root:
       child <-- state.hledgerReachable.combineWith(state.navView).distinct.map {
         case (false, _)                  => unreachablePanel
         case (true, NavView.Monthly)     => Monthly.view(state, monthChangeObserver)
-        case (true, NavView.YearToNow)   => YearToNow.view
+        case (true, NavView.YearToNow)   => YearToNow.view(state)
         case (true, NavView.ManualEntry) => ManualEntry.view(state)
       }
     )
