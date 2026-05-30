@@ -45,7 +45,7 @@ object AccountsLineChartView:
         data = js.Array(series*),
         borderColor = color,
         backgroundColor = color,
-        tension = 0.25,
+        tension = 0,
         fill = false
       )
     }
@@ -58,8 +58,11 @@ object AccountsLineChartView:
     val options = js.Dynamic.literal(
       responsive = true,
       maintainAspectRatio = false,
+      elements = js.Dynamic.literal(
+        point = js.Dynamic.literal(radius = 2, hoverRadius = 2)
+      ),
       plugins = js.Dynamic.literal(
-        legend = js.Dynamic.literal(position = "bottom")
+        legend = js.Dynamic.literal(position = "top")
       )
     )
 

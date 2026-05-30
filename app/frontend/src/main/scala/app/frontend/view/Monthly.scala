@@ -1,8 +1,9 @@
 package app.frontend.view
 
-import app.frontend.charts.monthly.{
-  AccountsLineChartView, BarChartView, LineChartView, StackedBarChartView
-}
+import app.frontend.charts.monthly.{AccountsLineChartView, LineChartView, PieChartView}
+// BarChartView ("By account") and StackedBarChartView ("Account breakdown") are
+// temporarily disabled — see loadedView below. Re-add to the import when
+// restoring them.
 import app.frontend.{AppState, Loadable, Row}
 
 import com.raquo.laminar.api.L.*
@@ -13,6 +14,11 @@ import org.scalajs.dom.{HTMLDivElement, HTMLTableRowElement}
   * month. Owns the loading/error states for the monthly data feed.
   */
 object Monthly:
+
+  // Singletons so each pie keeps a persistent Chart.js instance across the
+  // monthly-data re-renders (same pattern as the other chart views).
+  private val expensesPie    = PieChartView("chart-pie-expenses", "Expenses", "doughnut")
+  private val liabilitiesPie = PieChartView("chart-pie-liabilities", "Liabilities")
 
   def view(
     state: AppState,
@@ -32,10 +38,27 @@ object Monthly:
   ): ReactiveHtmlElement[HTMLDivElement] =
     div(
       monthSelector(state, monthChangeObserver),
-      div(cls := "row", div(cls := "col-12", BarChartView.view(state.signals.expenses))),
+      // Two pie charts side by side, taking the full-width slot the "By account"
+      // bar chart used to occupy: expenses on the left, liabilities on the right.
       div(
         cls := "row",
-        div(cls := "col-12", StackedBarChartView.view(state.signals.expenses))
+        div(cls := "col-12", expensesPie.view(state.signals.expenses))
+      ),
+      div(
+        cls := "row",
+        div(cls := "col-12", liabilitiesPie.view(state.signals.liabilities))
+      ),
+      // Temporarily hidden — "By account" bar chart and "Account breakdown"
+      // stacked bar chart:
+      // div(cls := "row", div(cls := "col-12", BarChartView.view(state.signals.expenses))),
+      // div(
+      //   cls := "row",
+      //   div(cls := "col-12", StackedBarChartView.view(state.signals.expenses))
+      // ),
+
+      div(
+        cls := "row",
+        div(cls := "col-12", AccountsLineChartView.view(state.signals.expenses))
       ),
       div(
         cls := "row",
@@ -43,10 +66,6 @@ object Monthly:
           cls := "col-12",
           LineChartView.view(state.signals.dailySpend, state.signals.dailyIncome)
         )
-      ),
-      div(
-        cls := "row",
-        div(cls := "col-12", AccountsLineChartView.view(state.signals.expenses))
       ),
       entriesTable(state.signals.entriesAsRows)
     )

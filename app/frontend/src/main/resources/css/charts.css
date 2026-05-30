@@ -41,6 +41,10 @@
     border-radius: var(--nb-radius);
     padding: 0.5rem;
 }
+/* Pie charts get a bit more height than the line/bar charts. */
+.chart-wrap-pie {
+    height: clamp(300px, 52vw, 460px);
+}
 .pie-wrap {
     max-width: 460px;
     margin-left: auto;

@@ -37,10 +37,7 @@ object LineChartView:
       .scanLeft(0d) { case (acc, (_, v)) => acc + v }
       .drop(1)
 
-  private def render(
-    spend: List[(String, Double)],
-    earnings: List[(String, Double)]
-  ): Unit = {
+  private def render(spend: List[(String, Double)], earnings: List[(String, Double)]): Unit = {
     // Build a unified, sorted date axis covering both series.
     val labels = (spend.map(_._1) ++ earnings.map(_._1)).distinct.sorted
 
@@ -68,7 +65,7 @@ object LineChartView:
           data = js.Array(spendAcc*),
           borderColor = spendColor,
           backgroundColor = spendColor,
-          tension = 0.25,
+          tension = 0,
           fill = false
         ),
         js.Dynamic.literal(
@@ -76,7 +73,7 @@ object LineChartView:
           data = js.Array(earningsAcc*),
           borderColor = earningsColor,
           backgroundColor = earningsColor,
-          tension = 0.25,
+          tension = 0,
           fill = false
         )
       )
@@ -85,8 +82,11 @@ object LineChartView:
     val options = js.Dynamic.literal(
       responsive = true,
       maintainAspectRatio = false,
+      elements = js.Dynamic.literal(
+        point = js.Dynamic.literal(radius = 2, hoverRadius = 2)
+      ),
       plugins = js.Dynamic.literal(
-        legend = js.Dynamic.literal(position = "bottom")
+        legend = js.Dynamic.literal(position = "top")
       )
     )
 
