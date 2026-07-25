@@ -1,0 +1,4 @@
+# Keep the go-build stage's `COPY app/ ./` lean.
+app/node_modules
+app/assets/vendor
+.git

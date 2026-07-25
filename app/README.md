@@ -1,90 +1,59 @@
 # app
 
-Scala web UI on top of `hledger-web`.
+Go web UI on top of `hledger-web`.
 
-- `frontend/` — Scala.js + Laminar + Chart.js viewer.
-- `backend/` — http4s server that proxies `hledger-web` JSON and serves the frontend assets.
-- `shared/` — DTOs shared between the two.
-
-Scala 3.8.3 (see `frontend/target/scala-3.8.3/`, `backend/target/scala-3.8.3/`).
+- `main.go` — kong CLI entrypoint (`my-hledger-app`).
+- `internal/hledger/` — client for `hledger-web --serve-api` (read journal, `PUT /add`).
+- `internal/service/` — expenses service (monthly mapping, account list, add grouping).
+- `internal/web/` — chi router, JSON API, `html/template` views (embedded), static assets.
+- `assets/` — CSS, page scripts (`js/charts.js`, `js/manual.js`) and the pnpm-vendored
+  deps under `vendor/` (generated, not committed).
+- `package.json` — frontend JS deps; `pnpm install` runs the vendor script.
 
 ## Build
 
-| Command                      | Effect                                                             |
-|------------------------------|--------------------------------------------------------------------|
-| `./sbtx compile`             | Compile all modules (`shared`, `backend`, `frontend`).             |
-| `./sbtx frontend/fastLinkJS` | Link the frontend to `main.js` (dev, unminified).                  |
-| `./sbtx frontend/fullLinkJS` | Link the frontend minified (production).                           |
-| `./sbtx backend/assembly`    | Build the backend fat jar at `backend/target/scala-3.8.3/app.jar`. |
-| `./sbtx clean`               | Remove all `target/` output.                                       |
+```sh
+go build -o my-hledger-app .
+```
 
 ## Run locally (no docker)
 
 You need two things running:
 
-1. **`hledger-web`** reachable at `HLEDGER_WEB_URL` (defaults to `http://localhost:5000`):
+1. **`hledger-web`** reachable at `--hledger-web-url` (defaults to `http://localhost:5000`):
    ```sh
    hledger-web --serve-api -f ../data/2026.hledger.journal --host 127.0.0.1 --port 5000
    ```
-2. **The sbt `dev` command**, which forks the backend via sbt-revolver and watches both modules — any change to backend or frontend sources re-links `main.js` and restarts the JVM:
+2. **The app** (from this directory, so the default assets dir resolves):
    ```sh
-   APP_ASSETS_DIR=frontend/src/main/resources \
-   HLEDGER_WEB_URL=http://localhost:5000 \
-   ./sbtx dev
+   go run .
    ```
 
-   Required env vars:
-   - `APP_ASSETS_DIR` — directory the backend serves static assets from (point at the frontend resources dir so `main.js` lands next to `index.html`).
-   - `HLEDGER_WEB_URL` — base URL of the `hledger-web` instance to proxy.
+Then browse to `http://localhost:8081`.
 
-   Stop the forked backend with `devStop` inside the sbt shell.
+Flags (each with an env fallback):
 
-Then browse to `http://localhost:8081`. Backend changes restart automatically; frontend changes just need a refresh.
+| Flag                | Env               | Default                       |
+|---------------------|-------------------|-------------------------------|
+| `--bind`            | `APP_BIND`        | `0.0.0.0:8081`                |
+| `--assets-dir`      | `APP_ASSETS_DIR`  | `assets`                      |
+| `--hledger-web-url` | `HLEDGER_WEB_URL` | `http://localhost:5000`       |
 
-### Manual two-shell setup (alternative)
+## Frontend deps
 
-```sh
-# Shell A — rebuild main.js on every save
-./sbtx ~frontend/fastLinkJS
+`package.json` vendors Chart.js and Bootstrap into `assets/vendor/` — run
+`pnpm install` here after bumping versions. Everything else (styles under
+`assets/css/`, `assets/app.css`, page scripts under `assets/js/`) is
+committed as-is.
 
-# Shell B — copy index.html next to the linker output (one-time), then run the backend
-cp frontend/src/main/resources/index.html \
-   frontend/target/scala-3.8.3/app-frontend-fastopt/
+## Views
 
-APP_ASSETS_DIR=frontend/target/scala-3.8.3/app-frontend-fastopt \
-HLEDGER_WEB_URL=http://localhost:5000 \
-./sbtx backend/run
-```
+- **Monthly** (`/monthly?month=YYYY-MM`) — expense/liability pies, per-account and
+  cumulative line charts, and the entries table for the selected month.
+- **Year To Now** (`/year-to-now`) — cumulative line per (main account, currency).
+- **Manual Entry** (`/manual-entry`) — draft entries, then save; the backend groups
+  them into one hledger transaction per date via `hledger-web`'s `PUT /add`.
 
-## Lint / Format
-
-| Command                                        | Effect                                       |
-|------------------------------------------------|----------------------------------------------|
-| `./sbtx scalafmtAll`                           | Format all sources in-place.                 |
-| `./sbtx scalafmtCheckAll`                      | Fail if anything is unformatted (use in CI). |
-| `./sbtx "scalafixAll OrganizeImports"`         | Run scalafix rewrites.                       |
-| `./sbtx "scalafixAll --check OrganizeImports"` | Check-only (use in CI).                      |
-
-## Docker
-
-Two images live at the repo root:
-
-- `Dockerfile-hledger` — minimal Alpine image with the `hledger` / `hledger-web` CLIs only.
-- `Dockerfile-hledgerapp` — full stack: builds the Scala frontend + backend, vendors Chart.js with pnpm, builds the Go CLI (`cli/`), and ships them on a Temurin 25 JRE alongside `hledger-web`. Only `:8081` is exposed; `hledger-web` runs internally on `:5000`.
-
-Build and run the full stack:
-
-```sh
-# From the repo root.
-docker build -f Dockerfile-hledgerapp -t hledger-app .
-
-# Use the Go CLI to launch it (handles bind mounts, port publish, signal forwarding).
-go run ./cli run-web \
-  --data ./data \
-  --journal /opt/hledger_data/2026.hledger.journal \
-  --port 8081
-```
-
-The journal path is the container path under `/opt/hledger_data`; `--data` is the host directory bind-mounted there. The CLI validates that the journal exists on the host before launching docker. See `cli/README` (TBD) or `cli/cli.go` for all flags.
-
-`HLEDGER_JOURNAL` is intentionally not baked into the image — it is set from `--journal` at run time so the image stays journal-agnostic.
+JSON API (used by the manual-entry page, also handy for scripting):
+`GET /api/expenses/monthly[?month=]`, `GET /api/accounts`, `GET /api/health`,
+`POST /api/transactions`.

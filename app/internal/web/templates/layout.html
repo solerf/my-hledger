@@ -1,0 +1,39 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>app</title>
+    <link rel="stylesheet" href="/vendor/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/app.css"/>
+    <script src="/vendor/chart.umd.js"></script>
+    <script src="/vendor/bootstrap.bundle.min.js" defer></script>
+</head>
+<body>
+<div id="app">
+    <div>
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4 rounded">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">my-hledger</span>
+                <button type="button" class="navbar-toggler" data-bs-toggle="collapse"
+                        data-bs-target="#nav-menu" aria-controls="nav-menu" aria-expanded="false"
+                        aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="nav-menu">
+                    <ul class="navbar-nav ms-auto">
+                        {{range .Nav}}
+                        <li class="nav-item">
+                            <a href="{{.Href}}" class="nav-link{{if .Active}} active{{end}}">{{.Label}}</a>
+                        </li>
+                        {{end}}
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        {{template "content" .}}
+    </div>
+</div>
+</body>
+</html>
+{{end}}

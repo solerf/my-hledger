@@ -1,0 +1,15 @@
+{
+  "name": "app-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Frontend JS deps. Run `pnpm install` (postinstall auto-runs vendor) to copy assets into assets/vendor.",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "vendor": "mkdir -p assets/vendor && cp node_modules/chart.js/dist/chart.umd.js assets/vendor/chart.umd.js && cp node_modules/bootstrap/dist/css/bootstrap.min.css assets/vendor/bootstrap.min.css && cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js assets/vendor/bootstrap.bundle.min.js",
+    "postinstall": "pnpm run vendor"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "chart.js": "^4.4.4"
+  }
+}

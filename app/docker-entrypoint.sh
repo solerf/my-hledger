@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Container entrypoint for the hledger-app image.
 #
-#   hledger-web  -> 127.0.0.1:5000  (data gateway, --serve-api)
-#   backend JVM  -> 0.0.0.0:8081    (Scala viewer; serves frontend assets)
+#   hledger-web     -> 127.0.0.1:5000  (data gateway, --serve-api)
+#   my-hledger-app  -> 0.0.0.0:8081    (Go viewer; serves frontend assets)
 #
 # HLEDGER_JOURNAL must be set at `docker run` time and point to a file under
 # /opt/hledger_data (the bind-mounted host data dir).
@@ -26,8 +26,8 @@ hledger_web_pid=$!
 
 trap 'kill "$hledger_web_pid" 2>/dev/null || true' EXIT INT TERM
 
-echo ">>> starting backend on 0.0.0.0:8081  (assets=$APP_ASSETS_DIR, hledger-web=$HLEDGER_WEB_URL)"
+echo ">>> starting app on 0.0.0.0:8081  (assets=$APP_ASSETS_DIR, hledger-web=$HLEDGER_WEB_URL)"
 exec env \
   APP_ASSETS_DIR="$APP_ASSETS_DIR" \
   HLEDGER_WEB_URL="$HLEDGER_WEB_URL" \
-  java -jar /opt/app/app.jar
+  my-hledger-app
